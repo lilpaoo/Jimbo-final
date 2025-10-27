@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Personal Trainer (Local Mode)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .tab-button.active { border-color: #4f46e5; background-color: #eef2ff; color: #4f46e5; }
+        /* NEW: Styles for the formatted plan */
+/* ... existing code ... -->
+        .plan-output ul { list-style-type: disc; margin-left: 1.5rem; }
+        .plan-output p { margin-top: 0.25rem; }
+        
+        /* --- FIX: Re-adding the missing auth styles --- */
+        .auth-form-container { display: none; }
+        .auth-form-container.active { display: block; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div class="container mx-auto max-w-4xl p-4">
+
+        <!-- (Auth Container remains the same) -->
+        <div id="auth-container">
+            <div class="bg-white shadow rounded-lg p-6 max-w-md mx-auto">
+                
+                <!-- Login Form -->
+                <div id="login-form-container" class="auth-form-container active">
+                    <h2 class="text-2xl font-bold text-center text-indigo-600 mb-4">Login (Local)</h2>
+                    <form id="login-form" class="space-y-4">
+                        <div>
+                            <label for="login-email" class="block text-sm font-medium text-gray-700">Email</label>
+                            <input type="email" id="login-email" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <label for="login-password" class="block text-sm font-medium text-gray-700">Password</label>
+                            <input type="password" id="login-password" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        </div>
+                        <button type="submit" class="w-full justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            Login
+                        </button>
+                    </form>
+                    <p class="text-sm text-center text-gray-600 mt-4">
+                        Don't have an account? 
+                        <button id="show-register-btn" class="font-medium text-indigo-600 hover:text-indigo-500">
+                            Register here
+                        </button>
+                    </p>
+                </div>
+
+                <!-- Register Form -->
+                <div id="register-form-container" class="auth-form-container">
+                    <h2 class="text-2xl font-bold text-center text-indigo-600 mb-4">Register (Local)</h2>
+                    <form id="register-form" class="space-y-4">
+                        <div>
+                            <label for="register-email" class="block text-sm font-medium text-gray-700">Email</label>
+                            <input type="email" id="register-email" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <label for="register-password" class="block text-sm font-medium text-gray-700">Password</label>
+                            <input type="password" id="register-password" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        </div>
+                        <button type="submit" class="w-full justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            Create Account
+                        </button>
+                    </form>
+                    <p class="text-sm text-center text-gray-600 mt-4">
+                        Already have an account? 
+                        <button id="show-login-btn" class="font-medium text-indigo-600 hover:text-indigo-500">
+                            Login here
+                        </button>
+                    </p>
+                </div>
+                <p class="text-xs text-center text-gray-500 mt-4">Note: This is an insecure, local-only account system. Do not use real passwords.</p>
+                <p id="auth-error" class="text-sm text-center text-red-600 mt-4"></p>
+            </div>
+        </div>
+
+        <!-- Main App Container (hidden by default) -->
+        <div id="main-app-container" class="hidden">
+            <header class="bg-white shadow rounded-lg p-6 mb-4">
+                <h1 class="text-3xl font-bold text-indigo-600">AI Personal Trainer</h1>
+                <p class="mt-2 text-gray-600">Your complete AI-powered fitness and nutrition coach.</p>
+                <div id="auth-status" class="mt-4 p-3 bg-indigo-50 rounded-lg flex justify-between items-center">
+                    <div>
+                        <p class="text-sm font-medium text-indigo-700">Signed in as:</p>
+                        <p id="user-email" class="text-xs text-indigo-500 break-all"></p>
+                    </div>
+                    <button id="sign-out-btn" class="py-1 px-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                        Sign Out
+                    </button>
+                </div>
+            </header>
+
+            <!-- Tabs -->
+            <div class="mb-4 border-b border-gray-200">
+                <nav class="flex -mb-px space-x-4" aria-label="Tabs">
+                    <button onclick="changeTab('workout-generator')" class="tab-button active whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        Workout Generator
+                    </button>
+                    <!-- NEW: Nutrition Tab -->
+                    <button onclick="changeTab('nutrition-generator')" class="tab-button whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        Nutrition Generator
+                    </button>
+                    <button onclick="changeTab('logger')" class="tab-button whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        Progress Logger
+                    </button>
+                    <button onclick="changeTab('evaluator')" class="tab-button whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        Coach Evaluation
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Workout Generator Tab -->
+            <div id="workout-generator" class="tab-content active">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Workout Form -->
+                    <div class="bg-white shadow rounded-lg p-6">
+                        <h2 class="text-xl font-semibold mb-4">1. Generate Workout</h2>
+                        <form id="workout-form" class="space-y-4">
+                            <!-- (Workout form fields remain the same) -->
+                            <div>
+                                <label for="goal" class="block text-sm font-medium text-gray-700">Goal</label>
+                                <input type="text" id="goal" value="Build muscle" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            </div>
+                            <div>
+                                <label for="experience_level" class="block text-sm font-medium text-gray-700">Experience</label>
+                                <input type="text" id="experience_level" value="Intermediate" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            </div>
+                            <div>
+                                <label for="days_per_week" class="block text-sm font-medium text-gray-700">Days/Week</label>
+                                <input type="number" id="days_per_week" value="4" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            </div>
+                            <div>
+                                <label for="hours_per_day" class="block text-sm font-medium text-gray-700">Hours/Day</label>
+                                <input type="text" id="hours_per_day" value="1 hour" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            </div>
+                            <div>
+                                <label for="available_equipment" class="block text-sm font-medium text-gray-700">Equipment</label>
+                                <input type="text" id="available_equipment" value="Full gym" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            </div>
+                            <button type="submit" class="w-full justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                Generate
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <!-- Result Display -->
+                    <div class="bg-white shadow rounded-lg p-6">
+                        <h2 class="text-xl font-semibold mb-4">2. Your AI Plan</h2>
+                        <!-- REMOVED 'prose' and 'prose-sm', added 'plan-output' -->
+                        <div id="api-response" class="plan-output max-w-full h-96 overflow-y-auto bg-gray-50 p-3 rounded-md">
+                            <p class="text-gray-500">Your generated plan will appear here...</p>
+                        </div>
+                        <button id="save-plan-btn" class="mt-4 w-full justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500" disabled>
+                            Save Workout Plan
+                        </button>
+                        <p id="save-status" class="text-sm text-green-700 mt-2"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- NEW: Nutrition Generator Tab -->
+            <div id="nutrition-generator" class="tab-content">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Nutrition Form -->
+                    <div class="bg-white shadow rounded-lg p-6">
+                        <h2 class="text-xl font-semibold mb-4">1. Generate Nutrition Plan</h2>
+                        <form id="nutrition-form" class="space-y-4">
+                            <div>
+                                <label for="nutri-goal" class="block text-sm font-medium text-gray-700">Goal</label>
+                                <input type="text" id="nutri-goal" value="Fat loss" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            </div>
+                            <div>
+                                <label for="nutri-weight" class="block text-sm font-medium text-gray-700">Weight (kg)</label>
+                                <input type="number" id="nutri-weight" value="85" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            </div>
+                             <div>
+                                <label for="nutri-height" class="block text-sm font-medium text-gray-700">Height (cm)</label>
+                                <input type="number" id="nutri-height" value="175" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            </div>
+                            <div>
+                                <label for="nutri-age" class="block text-sm font-medium text-gray-700">Age</g></label>
+                                <input type="number" id="nutri-age" value="30" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            </div>
+                            <div>
+                                <label for="nutri-activity" class="block text-sm font-medium text-gray-700">Activity Level</label>
+                                <input type="text" id="nutri-activity" value="Moderately Active" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="e.g., Sedentary, Moderately Active">
+                            </div>
+                             <div>
+                                <label for="nutri-prefs" class="block text-sm font-medium text-gray-700">Preferences (optional)</label>
+                                <input type="text" id="nutri-prefs" value="I prefer a high-protein diet." class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            </div>
+                            <button type="submit" class="w-full justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                Generate Nutrition Plan
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <!-- Nutrition Result Display -->
+                    <div class="bg-white shadow rounded-lg p-6">
+                        <h2 class="text-xl font-semibold mb-4">2. Your AI Nutrition Plan</h2>
+                        <div id="nutrition-response" class="plan-output max-w-full h-96 overflow-y-auto bg-gray-50 p-3 rounded-md">
+                            <p class="text-gray-500">Your generated nutrition plan will appear here...</p>
+                        </div>
+                        <!-- You could add a "Save Nutrition Plan" button here too -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Progress Logger Tab -->
+            <div id="logger" class="tab-content">
+                <!-- (Logger content remains the same) -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Check-in Form -->
+                    <div class="bg-white shadow rounded-lg p-6">
+                        <h2 class="text-xl font-semibold mb-4">Log Your Progress</h2>
+                        <form id="checkin-form" class="space-y-4">
+                            <div>
+                                <label for="checkin_date" class="block text-sm font-medium text-gray-700">Date</label>
+                                <input type="date" id="checkin_date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
+                            </div>
+                            <div>
+                                <label for="checkin_weight" class="block text-sm font-medium text-gray-700">Weight (kg)</label>
+                                <input type="number" step="0.1" id="checkin_weight" placeholder="e.g., 85.5" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            </div>
+                            <div>
+                                <label for="checkin_notes" class="block text-sm font-medium text-gray-700">Notes</label>
+                                <textarea id="checkin_notes" rows="3" placeholder="e.g., Completed Day 1, felt strong. Skipped cardio." class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required></textarea>
+                            </div>
+                            <button type="submit" class="w-full justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                Add Check-in
+                            </button>
+                        </form>
+                    </div>
+                    <!-- Check-in List -->
+                    <div class="bg-white shadow rounded-lg p-6">
+                        <h2 class="text-xl font-semibold mb-4">Recent Check-ins</h2>
+                        <div id="checkin-list" class="space-y-3 h-96 overflow-y-auto">
+                            <p class="text-gray-500">Your check-ins will appear here...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Evaluator Tab -->
+            <div id="evaluator" class="tab-content">
+                <!-- (Evaluator content remains the same) -->
+                <div class="bg-white shadow rounded-lg p-6">
+                    <h2 class="text-xl font-semibold mb-4">Get Your AI Evaluation</h2>
+                    <p class="text-sm text-gray-600 mb-4">Click the button below to send your saved plan and all your check-ins to the AI coach for a detailed progress evaluation.</p>
+                    <button id="evaluate-progress-btn" class="w-full justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Evaluate My Progress
+                    </button>
+                    
+                    <h3 class="text-lg font-semibold mt-6 mb-3">Coach's Report</h3>
+                    <div id="evaluation-response" class="plan-output max-w-full h-96 overflow-y-auto bg-gray-50 p-3 rounded-md">
+                        <p class="text-gray-500">Your evaluation will appear here...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Local-Only JavaScript -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // --- CONSTANTS & CONFIG ---
+            const API_URL = "http://127.0.0.1:5000"; // Your Python API URL
+            const USERS_DB_KEY = "ai_trainer_users";
+            const CURRENT_USER_KEY = "ai_trainer_currentUser";
+            const USER_DATA_PREFIX = "ai_trainer_data_";
+
+            // --- STATE ---
+            let currentUserId = null; // This will be the user's email
+            let currentPlan = null; // Holds the last generated plan
+
+            // --- UI ELEMENTS ---
+            const authContainer = document.getElementById('auth-container');
+            const mainAppContainer = document.getElementById('main-app-container');
+            const loginFormContainer = document.getElementById('login-form-container');
+            const registerFormContainer = document.getElementById('register-form-container');
+            const loginForm = document.getElementById('login-form');
+            const registerForm = document.getElementById('register-form');
+            const showRegisterBtn = document.getElementById('show-register-btn');
+            const showLoginBtn = document.getElementById('show-login-btn');
+            const authError = document.getElementById('auth-error');
+            const signOutBtn = document.getElementById('sign-out-btn');
+            
+            const userEmailEl = document.getElementById('user-email');
+            const saveBtn = document.getElementById('save-plan-btn');
+            const saveStatus = document.getElementById('save-status');
+            
+            const workoutForm = document.getElementById('workout-form');
+            const apiResponseEl = document.getElementById('api-response');
+            
+            // NEW: Nutrition UI Elements
+            const nutritionForm = document.getElementById('nutrition-form');
+            const nutritionResponseEl = document.getElementById('nutrition-response');
+
+            const checkinForm = document.getElementById('checkin-form');
+            const checkinListEl = document.getElementById('checkin-list');
+            
+            const evalResponseEl = document.getElementById('evaluation-response');
+            const evaluateBtn = document.getElementById('evaluate-progress-btn');
+
+            // --- LOCAL STORAGE HELPERS ---
+            function getUsersDB() {
+                return JSON.parse(localStorage.getItem(USERS_DB_KEY) || "{}");
+            }
+            function saveUsersDB(db) {
+                localStorage.setItem(USERS_DB_KEY, JSON.stringify(db));
+            }
+            function getUserData(email) {
+                return JSON.parse(localStorage.getItem(USER_DATA_PREFIX + email) || "{}");
+            }
+            function saveUserData(email, data) {
+                localStorage.setItem(USER_DATA_PREFIX + email, JSON.stringify(data));
+            }
+
+            // --- AUTHENTICATION LOGIC ---
+            // (Auth logic remains the same)
+            function registerUser(email, password) {
+                const users = getUsersDB();
+                if (users[email]) {
+                    authError.textContent = "An account with this email already exists.";
+                    return;
+                }
+                users[email] = { password: password }; // Storing password in plain text - NOT SECURE
+                saveUsersDB(users);
+                console.log("User registered:", email);
+                loginUser(email); // Automatically log in after register
+            }
+
+            function loginUser(email, password) {
+                // If password isn't provided, it's an auto-login (e.g., after register)
+                if (password) {
+                    const users = getUsersDB();
+                    if (!users[email]) {
+                        authError.textContent = "No account found with this email.";
+                        return;
+                    }
+                    if (users[email].password !== password) {
+                        authError.textContent = "Incorrect password.";
+                        return;
+                    }
+                }
+                
+                localStorage.setItem(CURRENT_USER_KEY, email);
+                currentUserId = email;
+                showAppUI(email);
+            }
+
+            function signOutUser() {
+                localStorage.removeItem(CURRENT_USER_KEY);
+                currentUserId = null;
+                showAuthUI();
+            }
+
+            function checkCurrentUser() {
+                const userEmail = localStorage.getItem(CURRENT_USER_KEY);
+                if (userEmail) {
+                    currentUserId = userEmail;
+                    showAppUI(userEmail);
+                } else {
+                    showAuthUI();
+                }
+            }
+
+
+            // --- UI TOGGLING ---
+            function showAppUI(email) {
+                userEmailEl.textContent = email;
+                mainAppContainer.classList.remove('hidden');
+                authContainer.classList.add('hidden');
+                authError.textContent = "";
+                loadCheckins(); // Load data for the logged-in user
+            }
+
+            function showAuthUI() {
+                mainAppContainer.classList.add('hidden');
+                authContainer.classList.remove('hidden');
+                currentPlan = null;
+                apiResponseEl.innerHTML = `<p class="text-gray-500">Your generated plan will appear here...</p>`;
+                nutritionResponseEl.innerHTML = `<p class="text-gray-500">Your generated nutrition plan will appear here...</p>`;
+                checkinListEl.innerHTML = `<p class="text-gray-500">Your check-ins will appear here...</p>`;
+                evalResponseEl.innerHTML = `<p class="text-gray-500">Your evaluation will appear here...</p>`;
+                saveBtn.disabled = true;
+            }
+
+            // --- NEW: HTML FORMATTING HELPERS ---
+
+            function formatWorkoutPlanAsHTML(plan) {
+                let html = `<h2>${plan.title}</h2>`;
+                html += `<p><strong>Frequency:</strong> ${plan.frequency}</p>`;
+                
+                plan.days.forEach(day => {
+                    html += `<h3>${day.day}: ${day.focus}</h3>`;
+                    html += `<h4>Warm-up</h4><p>${day.warm_up}</p>`;
+                    html += `<h4>Exercises</h4><ul>`;
+                    day.exercises.forEach(ex => {
+                        html += `<li><strong>${ex.name}:</strong> ${ex.sets_reps}</li>`;
+                    });
+                    html += `</ul>`;
+                    html += `<h4>Cool-down</h4><p>${day.cool_down}</p>`;
+                });
+
+                html += `<h3>Motivational Tip</h3><p>${plan.motivational_tip}</p>`;
+                return html;
+            }
+
+            function formatNutritionPlanAsHTML(plan) {
+                let html = `<h2>${plan.title}</h2>`;
+                html += `<h3>Daily Targets</h3><ul>`;
+                html += `<li><strong>Calories:</strong> ${plan.targets.calories}</li>`;
+                html += `<li><strong>Protein:</strong> ${plan.targets.protein}</li>`;
+                html += `<li><strong>Carbs:</strong> ${plan.targets.carbs}</li>`;
+                html += `<li><strong>Fats:</strong> ${plan.targets.fats}</li>`;
+                html += `</ul>`;
+
+                html += `<h3>Sample Plan</h3>`;
+                plan.sample_plan.forEach(meal => {
+                    html += `<h4>${meal.meal}</h4><p>${meal.description}</p>`;
+                });
+
+                html += `<h3>Key Tips</h3><ul>`;
+                plan.key_tips.forEach(tip => {
+                    html += `<li>${tip}</li>`;
+                });
+                html += `</ul>`;
+                return html;
+            }
+            
+            function formatEvaluationAsHTML(plan) {
+                let html = `<h2>${plan.title}</h2>`;
+                html += `<h3>Analysis</h3><p>${plan.analysis}</p>`;
+                
+                html += `<h3>Key Observations</h3><ul>`;
+                plan.key_observations.forEach(item => {
+                    html += `<li>${item}</li>`;
+                });
+                html += `</ul>`;
+
+                html += `<h3>Recommendations</h3><ul>`;
+                plan.recommendations.forEach(item => {
+                    html += `<li>${item}</li>`;
+                });
+                html += `</ul>`;
+                return html;
+            }
+
+
+            // --- APP LOGIC ---
+            function savePlan() {
+                if (!currentPlan || !currentUserId) {
+                    saveStatus.textContent = "No plan to save or user not logged in.";
+                    return;
+                }
+                saveStatus.textContent = "Saving plan...";
+                try {
+                    const data = getUserData(currentUserId);
+                    data.plan = currentPlan; // Only saves workout plan
+                    saveUserData(currentUserId, data);
+                    saveStatus.textContent = "Workout plan saved successfully!";
+                    console.log("Plan saved to localStorage.");
+                } catch (error) {
+                    console.error("Error saving plan:", error);
+                    saveStatus.textContent = `Error: ${error.message}`;
+                }
+            }
+
+            function loadCheckins() {
+                // (This function remains the same)
+                if (!currentUserId) return;
+                const data = getUserData(currentUserId);
+                const checkins = data.checkins || [];
+                if (checkins.length === 0) {
+                    checkinListEl.innerHTML = `<p class="text-gray-500">No check-ins found.</p>`;
+                    return;
+                }
+                checkinListEl.innerHTML = '';
+                checkins.sort((a, b) => new Date(b.date) - new Date(a.date));
+                checkins.forEach(data => {
+                    const el = document.createElement('div');
+                    el.className = 'p-3 bg-gray-50 rounded-md border';
+                    el.innerHTML = `
+                        <p class="font-semibold text-gray-800">${data.date}</p>
+                        <p class="text-sm text-gray-600">${data.notes}</p>
+                        ${data.weight_kg ? `<span class="text-xs font-medium bg-indigo-100 text-indigo-700 py-0.5 px-2 rounded-full">${data.weight_kg} kg</span>` : ''}
+                    `;
+                    checkinListEl.appendChild(el);
+                });
+            }
+
+            function addCheckin() {
+                // (This function remains the same)
+                if (!currentUserId) {
+                    alert("You must be logged in to add a check-in.");
+                    return;
+                }
+                const checkinData = {
+                    date: document.getElementById('checkin_date').value,
+                    weight_kg: document.getElementById('checkin_weight').value,
+                    notes: document.getElementById('checkin_notes').value,
+                    timestamp: new Date().toISOString()
+                };
+                try {
+                    const data = getUserData(currentUserId);
+                    if (!data.checkins) {
+                        data.checkins = [];
+                    }
+                    data.checkins.push(checkinData);
+                    saveUserData(currentUserId, data);
+                    console.log("Check-in added.");
+                    checkinForm.reset();
+                    loadCheckins();
+                } catch (error) {
+                    console.error("Error adding check-in:", error);
+                }
+            }
+
+            async function evaluateProgress() {
+                // (This function remains the same, but calls the new formatter)
+                if (!currentUserId) {
+                    alert("You must be logged in.");
+                    return;
+                }
+                evalResponseEl.innerHTML = `<p class="text-gray-500">Gathering your data...</p>`;
+                try {
+                    const data = getUserData(currentUserId);
+                    const original_plan = data.plan;
+                    const check_ins = data.checkins || [];
+
+                    if (!original_plan) {
+                        evalResponseEl.innerHTML = `<p class="text-red-500">Error: No saved plan found. Please generate and save a plan first.</p>`;
+                        return;
+                    }
+                    if (check_ins.length === 0) {
+                        evalResponseEl.innerHTML = `<p class="text-red-500">Error: No check-ins found. Please log your progress first.</p>`;
+                        return;
+                    }
+
+                    evalResponseEl.innerHTML = `<p class="text-gray-500">Sending data to AI Coach for evaluation...</p>`;
+                    const response = await fetch(`${API_URL}/evaluate-plan`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ original_plan, check_ins })
+                    });
+
+                    if (!response.ok) {
+                        const err = await response.json();
+                        throw new Error(err.error || "API request failed");
+                    }
+
+                    const evaluation = await response.json();
+                    // --- CHANGED ---
+                    evalResponseEl.innerHTML = formatEvaluationAsHTML(evaluation);
+                } catch (error) {
+                    console.error("Error evaluating progress:", error);
+                    evalResponseEl.innerHTML = `<p class="text-red-500">Error: ${error.message}</p>`;
+                }
+            }
+            
+            async function generateWorkout() {
+                // (This function remains the same, but calls the new formatter)
+                if (!currentUserId) {
+                    apiResponseEl.innerHTML = `<p class="text-red-500">You must be logged in to generate a plan.</p>`;
+                    return;
+                }
+                
+                apiResponseEl.innerHTML = `<p class="text-gray-500">Generating your plan...</p>`;
+                saveBtn.disabled = true;
+                saveStatus.textContent = '';
+                
+                const formData = {
+                    goal: document.getElementById('goal').value,
+                    experience_level: document.getElementById('experience_level').value,
+                    days_per_week: parseInt(document.getElementById('days_per_week').value),
+                    hours_per_day: document.getElementById('hours_per_day').value,
+                    available_equipment: document.getElementById('available_equipment').value,
+                    notes: ""
+                };
+
+                try {
+                    const response = await fetch(`${API_URL}/generate-workout`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(formData)
+                    });
+
+                    if (!response.ok) {
+                        const err = await response.json();
+                        throw new Error(err.error || "API request failed");
+                    }
+
+                    const plan = await response.json();
+                    currentPlan = plan; // Store the plan globally
+                    // --- CHANGED ---
+                    apiResponseEl.innerHTML = formatWorkoutPlanAsHTML(plan);
+                    saveBtn.disabled = false;
+
+                } catch (error) {
+                    console.error("Error generating workout:", error);
+                    apiResponseEl.innerHTML = `<p class="text-red-500">Error: ${error.message}</p>`;
+                }
+            }
+            
+            // --- NEW: Generate Nutrition ---
+            async function generateNutrition() {
+                if (!currentUserId) {
+                    nutritionResponseEl.innerHTML = `<p class="text-red-500">You must be logged in to generate a plan.</p>`;
+                    return;
+                }
+                
+                nutritionResponseEl.innerHTML = `<p class="text-gray-500">Generating your nutrition plan...</p>`;
+                
+                const formData = {
+                    goal: document.getElementById('nutri-goal').value,
+                    weight_kg: parseFloat(document.getElementById('nutri-weight').value),
+                    height_cm: parseFloat(document.getElementById('nutri-height').value),
+                    age: parseInt(document.getElementById('nutri-age').value),
+                    activity_level: document.getElementById('nutri-activity').value,
+                    preferences: document.getElementById('nutri-prefs').value
+                };
+
+                try {
+                    const response = await fetch(`${API_URL}/generate-nutrition-plan`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(formData)
+                    });
+
+                    if (!response.ok) {
+                        const err = await response.json();
+                        throw new Error(err.error || "API request failed");
+                    }
+
+                    const plan = await response.json();
+                    // --- NEW ---
+                    nutritionResponseEl.innerHTML = formatNutritionPlanAsHTML(plan);
+                    // You could also save this plan to localStorage here
+
+                } catch (error) {
+                    console.error("Error generating nutrition plan:", error);
+                    nutritionResponseEl.innerHTML = `<p class="text-red-500">Error: ${error.message}</p>`;
+                }
+            }
+
+
+            // --- EVENT LISTENERS ---
+
+            // Auth Listeners
+            // (These remain the same)
+            loginForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                authError.textContent = "";
+                loginUser(
+                    document.getElementById('login-email').value,
+                    document.getElementById('login-password').value
+                );
+            });
+
+            registerForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                authError.textContent = "";
+                registerUser(
+                    document.getElementById('register-email').value,
+                    document.getElementById('register-password').value
+                );
+            });
+
+            signOutBtn.addEventListener('click', signOutUser);
+
+            showRegisterBtn.addEventListener('click', () => {
+                loginFormContainer.classList.remove('active');
+                registerFormContainer.classList.add('active');
+                authError.textContent = "";
+            });
+
+            showLoginBtn.addEventListener('click', () => {
+                registerFormContainer.classList.remove('active');
+                loginFormContainer.classList.add('active');
+                authError.textContent = "";
+            });
+
+
+            // App Listeners
+            workoutForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                generateWorkout();
+            });
+            
+            // NEW: Nutrition Listener
+            nutritionForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                generateNutrition();
+            });
+
+            checkinForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                addCheckin();
+            });
+            
+            saveBtn.addEventListener('click', savePlan);
+            evaluateBtn.addEventListener('click', evaluateProgress);
+
+            // Global tab change function
+            window.changeTab = (tabId) => {
+                document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+                document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                document.getElementById(tabId).classList.add('active');
+                // Find the button that corresponds to the tabId and activate it
+                document.querySelector(`[onclick="changeTab('${tabId}')"]`).classList.add('active');
+            }
+
+            // --- INITIALIZATION ---
+            checkCurrentUser();
+        });
+    </script>
+</body>
+</html>
+
+
