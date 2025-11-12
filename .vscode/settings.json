@@ -1,0 +1,14 @@
+{
+  "liveServer.settings.CustomBrowser": "chrome",
+  "liveServer.settings.port": 5500,
+  "liveServer.settings.serverOptions": {
+    "https": false,
+    "middleware": [
+      function(req, res, next) {
+        // This is the magic header!
+        res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+        next();
+      }
+    ]
+  }
+}
