@@ -6,8 +6,12 @@
   <title>Jimbo - AI Personal Trainer</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   
+  <!-- Google API scripts -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="https://apis.google.com/js/api.js" async defer onload="gapiLoaded()"></script>
+  
+  <!-- NEW: SheetJS library for Excel file handling -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   
   <style>
     :root {
@@ -149,17 +153,37 @@
 
     .auth-social {
       display: flex;
+      flex-direction: column;
+      gap: 1rem;
       justify-content: center;
       margin-top: 0.5rem;
     }
     
-    /* This will be the container for the official Google button */
     #google-sign-in-button-placeholder {
         display: flex;
         justify-content: center;
         width: 100%;
         min-height: 40px; /* Prevent layout shift */
     }
+    
+    /* NEW: Tester Login Button */
+    .btn-secondary {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        padding: 10px 20px;
+        border-radius: 10px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: 0.3s;
+        width: 100%;
+        font-size: 0.9rem;
+        min-height: 40px;
+    }
+    .btn-secondary:hover {
+        background: rgba(255, 255, 255, 0.3);
+    }
+
 
     /* Sidebar */
     .sidebar {
@@ -382,6 +406,40 @@
       background-repeat: no-repeat;
       background-position: right 16px center;
     }
+    
+    /* Custom File Input */
+    .file-input-wrapper {
+      position: relative;
+      overflow: hidden;
+      display: inline-block;
+      width: 100%;
+      background: var(--input-bg);
+      border: 1.5px solid var(--input-border);
+      border-radius: 14px;
+      padding: 14px 16px;
+      color: #888;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    .file-input-wrapper:hover {
+        border-color: var(--purple);
+    }
+    .file-input-wrapper input[type=file] {
+      font-size: 100px;
+      position: absolute;
+      left: 0;
+      top: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+    .file-input-wrapper .file-name {
+      display: inline-block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: calc(100% - 20px);
+    }
+
 
     .btn {
       background: var(--purple);
@@ -418,11 +476,15 @@
       font-size: 0.95rem;
       line-height: 1.6;
       border: 1px solid var(--input-border);
+      white-space: pre-wrap; /* Allows text to wrap and preserve newlines */
+      word-wrap: break-word; /* Breaks long words */
     }
 
-    .plan-output h3 { color: white; margin-bottom: 1rem; }
-    .plan-output ul { margin-left: 1.5rem; margin-top: 0.5rem; }
+    .plan-output h3, .plan-output h4 { color: white; margin-top: 1rem; margin-bottom: 0.5rem; }
+    .plan-output ul { margin-left: 1.5rem; margin-top: 0.5rem; padding-left: 1rem; }
     .plan-output li { margin-bottom: 0.4rem; }
+    .plan-output p { margin-bottom: 0.5rem; }
+    .plan-output strong { color: #e5b8ff; }
 
     .status {
       margin-top: 1rem;
@@ -493,6 +555,23 @@
     }
 
     .hidden { display: none !important; }
+
+    /* --- NEW PROGRESS BAR STYLES --- */
+    .progress-bar-outer {
+        width: 100%;
+        height: 12px;
+        background: var(--input-bg);
+        border-radius: 6px;
+        overflow: hidden;
+        border: 1px solid var(--input-border);
+    }
+    .progress-bar-inner {
+        width: 0%;
+        height: 100%;
+        background: var(--purple);
+        transition: width 0.3s ease-out;
+    }
+
   </style>
 </head>
 <body>
@@ -518,6 +597,11 @@
           <div id="google-sign-in-button-placeholder">
              <p style="color: var(--text-light); font-size: 0.9rem;">Loading Sign-In...</p>
           </div>
+          
+          <div class="auth-or" style="margin: 1rem 0;"><span>OR</span></div>
+          
+          <!-- NEW: Tester Login Button -->
+          <button id="tester-login-btn" class="btn-secondary">Login as Tester</button>
         </div>
 
         <p id="auth-error"></p>
@@ -532,19 +616,23 @@
       </div>
       <nav>
         <div class="nav-item active" data-tab="workout">
-          <svg fill="currentColor" viewBox="0 0 24 24"><path d="M15 9H9v6h6V9z"/><path d="M2 12h2v-2H2v2zm18-2h2v2h-2v-2zm-9-8h2v2h-2V4zm0 16h2v2h-2v-2zM4.22 4.22l1.42 1.42-1.42-1.42zM18.36 18.36l1.42 1.42-1.42-1.42zM5.64 18.36l1.42-1.42-1.42 1.42zM19.78 5.64l-1.42-1.42 1.42 1.42z"/></svg>
+          <svg fill="currentColor" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4Zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10Z"/></svg>
           <span class="nav-text">Workout Generator</span>
         </div>
         <div class="nav-item" data-tab="nutrition">
-          <svg fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg>
+           <svg fill="currentColor" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="M12.4 1.108a.5.5 0 0 1 .6 0l1.645 1.646a.5.5 0 0 1 0 .707L13.01 5.097l-2.04-2.04 1.43-1.43.001-.001zM11.363 3.15l-8.48 8.482L1.17 13.34l-.493.493a.5.5 0 0 1-.707 0L.01 13.167a.5.5 0 0 1 0-.707l.493-.493 1.708-1.707 8.48-8.481 1.671 1.67zM3 16s.5 0 .5-.5V9.034l.879.879.707-.707L2.021 6.14a.5.5 0 0 0-.707 0L.6 6.857l.707.707L2.186 6.68l.814.814V15.5c0 .5.5.5.5.5zM16 4a.5.5 0 0 1-.5.5h-5a.5.5 0 0 1 0-1h5a.5.5 0 0 1 .5.5z"/></svg>
           <span class="nav-text">Nutrition Generator</span>
         </div>
         <div class="nav-item" data-tab="progress">
-          <svg fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg>
+           <svg fill="currentColor" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="M14 0H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zM2 1a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V1z"/><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/></svg>
           <span class="nav-text">Progress Logger</span>
         </div>
+        <div class="nav-item" data-tab="form-analysis">
+          <svg fill="currentColor" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="M0 12V4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2zm15 0a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14z"/><path d="M11.25 5.668a.5.5 0 0 1 .52-.038l3 2.5a.5.5 0 0 1 0 .74l-3 2.5a.5.5 0 0 1-.818-.52l1.232-1.027-1.232-1.027a.5.5 0 0 1 .298-.702zM1 4.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 0 1.5h-3.5A.75.75 0 0 1 1 4.25zm0 4a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 0 1.5h-3.5A.75.75 0 0 1 1 8.25zm0 4a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 0 1.5h-3.5a.75.75 0 0 1-.75-.75z"/></svg>
+          <span class="nav-text">Form Analysis</span>
+        </div>
         <div class="nav-item" data-tab="coach">
-          <svg fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg>
+          <svg fill="currentColor" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="M11 2a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v12h.5a.5.5 0 0 1 0 1H.5a.5.5 0 0 1 0-1H1v-3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3h1V7a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v7h1V2zM2 3v10h2V3H2zm4 4v7h2V7H6zm4 0v7h2V7h-2z"/></svg>
           <span class="nav-text">Coach Evaluation</span>
         </div>
       </nav>
@@ -560,8 +648,9 @@
     <main class="main">
       <header class="header">
         <div>
-          <h1 class="title" id="page-title">AI Personal Trainer</h1>
-          <p class="subtitle">Your data is saved securely to your Google Drive.</p>
+          <h1 class="title" id="page-title">Workout Generator</h1>
+          <!-- NEW: Subtitle changes based on login mode -->
+          <p class="subtitle" id="page-subtitle">Your data is saved securely.</p>
         </div>
         <div class="user-info">
           <span id="user-email">user@example.com</span>
@@ -569,6 +658,7 @@
         </div>
       </header>
 
+      <!-- TAB 1: WORKOUT GENERATOR -->
       <section id="workout" class="tab-content active">
         <div class="content">
           <div class="card">
@@ -605,18 +695,20 @@
                 <label class="form-label">Available Equipment</label>
                 <input type="text" id="available_equipment" class="form-input" placeholder="e.g., dumbbells, bench, pull-up bar" value="Full gym" required>
               </div>
-              <button type="submit" class="btn">Generate Plan</button>
+              <button type="submit" class="btn" id="workout-generate-btn">Generate Plan</button>
             </form>
           </div>
           <div class="card">
             <h3 class="card-title">Your Workout Plan</h3>
             <div id="api-response" class="plan-output">Fill in your details and click Generate.</div>
-            <button id="save-btn" class="btn" disabled style="margin-top: 1rem;">Save Plan to Google Drive</button>
+            <!-- NEW: This button's text and function will change -->
+            <button id="save-btn" class="btn" disabled style="margin-top: 1rem;">Save Plan</button>
             <p id="save-status" class="status"></p>
           </div>
         </div>
       </section>
 
+      <!-- TAB 2: NUTRITION GENERATOR -->
       <section id="nutrition" class="tab-content">
         <div class="content">
           <div class="card">
@@ -657,7 +749,7 @@
                 <label class="form-label">Dietary Preferences (optional)</label>
                 <input type="text" id="nutri-prefs" class="form-input" placeholder="e.g., vegetarian, no dairy">
               </div>
-              <button type="submit" class="btn">Generate Nutrition Plan</button>
+              <button type="submit" class="btn" id="nutrition-generate-btn">Generate Nutrition Plan</button>
             </form>
           </div>
           <div class="card">
@@ -666,7 +758,8 @@
           </div>
         </div>
       </section>
-
+      
+      <!-- TAB 3: PROGRESS LOGGER -->
       <section id="progress" class="tab-content">
         <div class="content">
           <div class="card">
@@ -686,6 +779,18 @@
               </div>
               <button type="submit" class="btn">Log Check-In</button>
             </form>
+            
+            <!-- NEW: Tester Mode Upload Section -->
+            <div id="tester-upload-section" class="hidden" style="margin-top: 2rem; border-top: 1px solid var(--input-border); padding-top: 2rem;">
+                 <h4 class="card-title" style="margin-bottom: 1rem;">Load Tester Data</h4>
+                 <p style="color: var(--text-light); font-size: 0.9rem; margin-bottom: 1rem;">Upload your `Jimbo_Data.xlsx` file to restore your saved plan and check-ins.</p>
+                 <label class="file-input-wrapper" for="upload-data-file">
+                    <span id="upload-file-name">Choose .xlsx file...</span>
+                    <input type="file" id="upload-data-file" accept=".xlsx" required>
+                </label>
+                <p id="upload-status" class="status"></p>
+            </div>
+            
           </div>
           <div class="card">
             <h3 class="card-title">Recent Check-Ins</h3>
@@ -696,12 +801,54 @@
         </div>
       </section>
 
+      <!-- TAB 4: FORM ANALYSIS (NEW) -->
+      <section id="form-analysis" class="tab-content">
+        <div class="content">
+          <div class="card">
+            <h3 class="card-title">Analyze Your Form</h3>
+            <form id="form-analysis-form">
+              <div class="form-group">
+                <label class="form-label" for="exercise-select">Exercise</label>
+                <select id="exercise-select" class="form-select" required>
+                  <option value="">Loading exercises...</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="video-upload">Upload Video</label>
+                <label class="file-input-wrapper" for="video-upload-real">
+                    <span id="file-name-display">Choose a video file...</span>
+                    <input type="file" id="video-upload-real" accept="video/mp4,video/mov,video/avi" required>
+                </label>
+              </div>
+              <button type.submit" class="btn" id="analyze-form-btn">Analyze Form</button>
+            </form>
+          </div>
+          <div class="card">
+            <h3 class="card-title">Form Analysis Report</h3>
+            
+            <!-- NEW PROGRESS BAR -->
+            <div id="analysis-progress-container" class="hidden" style="margin-bottom: 1.5rem;">
+                <div id="analysis-progress-status" style="font-weight: 500; margin-bottom: 0.5rem; color: var(--text-light);">Uploading...</div>
+                <div class="progress-bar-outer">
+                    <div id="analysis-progress-bar" class="progress-bar-inner" style="width: 0%;"></div>
+                </div>
+            </div>
+            <!-- END NEW PROGRESS BAR -->
+
+            <div id="form-analysis-response" class="plan-output">
+              <p>Please select an exercise and upload a video to get your form analysis.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 5: COACH EVALUATION -->
       <section id="coach" class="tab-content">
         <div class="content" style="grid-template-columns: 1fr; max-width: 800px; margin: 4rem auto 0;">
           <div class="card" style="text-align:center;">
             <h3 class="card-title">Get Your AI Evaluation</h3>
             <p style="margin: 1rem 0; color: var(--text-light);">
-              Click the button to send your plan and check-ins to the AI Coach.
+              Click the button to send your saved plan and check-ins to the AI Coach for a progress review.
             </p>
             <button id="evaluate-btn" class="btn" style="max-width: 300px; margin: 1rem auto;">Evaluate Progress</button>
             <h3 class="card-title" style="margin-top: 2rem;">Coach's Report</h3>
@@ -756,20 +903,6 @@
             window.gapiReady = true;
           });
         };
-
-    /**
-     * Callback after the API client is loaded. Loads the
-     * discovery doc to initialize the API.
-     */
-    async function initializeGapiClient() {
-        await gapi.client.init({
-            discoveryDocs: [
-                'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest',
-                'https://sheets.googleapis.com/discovery/rest?version=v4'
-            ],
-        });
-        console.log("GAPI client and APIs are ready.");
-    }
     
     // Google Sign-In Callback
     // Must be global for GSI library to find it
@@ -797,12 +930,12 @@
         // --- CONSTANTS & CONFIG ---
         const API_URL = "http://127.0.0.1:5000"; // Your Python API
         const SPREADSHEET_FILE_NAME = "AI_Trainer_Data";
-        const DRIVE_SCOPES = 'https://www.googleapis.com/auth/drive.file';
-        const SHEETS_SCOPES = 'https://www.googleapis.com/auth/spreadsheets';
+        const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets';
         
         // --- STATE ---
         let CLIENT_ID = null; // Will be fetched from backend
         let isAppInitialized = false; // Flag to prevent race conditions
+        let loginMode = null; // 'google' or 'tester'
         let currentPlan = null;     // Holds the last generated plan
         let allCheckIns = [];       // Holds check-ins read from Sheet
         let currentUserEmail = null;
@@ -816,28 +949,72 @@
         const signOutBtn = document.getElementById('sign-out-btn');
         const userEmail = document.getElementById('user-email');
         const userEmailSidebar = document.getElementById('user-email-sidebar');
-        const saveBtn = document.getElementById('save-btn');
-        const saveStatus = document.getElementById('save-status');
+        const pageSubtitle = document.getElementById('page-subtitle');
+        const testerLoginBtn = document.getElementById('tester-login-btn');
+        const googleSignInBtn = document.getElementById('google-sign-in-button-placeholder');
+        
+        // Workout Tab
         const workoutForm = document.getElementById('workout-form');
         const apiResponseEl = document.getElementById('api-response');
+        const saveBtn = document.getElementById('save-btn');
+        const saveStatus = document.getElementById('save-status');
+        const workoutGenBtn = document.getElementById('workout-generate-btn');
+
+        // Nutrition Tab
         const nutritionForm = document.getElementById('nutrition-form');
         const nutritionResponseEl = document.getElementById('nutrition-response');
+        const nutritionGenBtn = document.getElementById('nutrition-generate-btn');
+
+        // Progress Tab
         const checkinForm = document.getElementById('checkin-form');
         const checkinListEl = document.getElementById('checkin-list');
+        const testerUploadSection = document.getElementById('tester-upload-section');
+        const uploadDataFile = document.getElementById('upload-data-file');
+        const uploadFileName = document.getElementById('upload-file-name');
+        const uploadStatus = document.getElementById('upload-status');
+
+
+        // Form Analysis Tab
+        const formAnalysisForm = document.getElementById('form-analysis-form');
+        const exerciseSelect = document.getElementById('exercise-select');
+        const videoUpload = document.getElementById('video-upload-real');
+        const fileNameDisplay = document.getElementById('file-name-display');
+        const formAnalysisResponseEl = document.getElementById('form-analysis-response');
+        const analyzeFormBtn = document.getElementById('analyze-form-btn');
+        // --- NEW PROGRESS UI ELEMENTS ---
+        const progressContainer = document.getElementById('analysis-progress-container');
+        const progressBar = document.getElementById('analysis-progress-bar');
+        const progressStatus = document.getElementById('analysis-progress-status');
+
+        
+        // Coach Tab
         const evalResponseEl = document.getElementById('eval-response');
         const evaluateBtn = document.getElementById('evaluate-btn');
 
         // --- API HELPER (to Python Backend) ---
         async function apiFetch(endpoint, options = {}) {
+            // Check for file uploads
+            const isFormData = options.body instanceof FormData;
+
+            // Setup default headers if not a file upload
+            if (!isFormData) {
+                options.headers = {
+                    'Content-Type': 'application/json',
+                    ...options.headers,
+                };
+            }
+            // If it is FormData, DO NOT set Content-Type. The browser will do it.
+            
             try {
-                const response = await fetch(`${API_URL}${endpoint}`, {
-                    ...options,
-                    headers: { 'Content-Type': 'application/json', ...options.headers },
-                });
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.error || "An API error occurred");
+                const response = await fetch(`${API_URL}${endpoint}`, options);
+                const data = await response.json(); // Always expect JSON back
+                
+                if (!response.ok) {
+                    throw new Error(data.error || `HTTP error! status: ${response.status}`);
+                }
                 return data;
             } catch (err) {
+                console.error(`Error fetching ${endpoint}:`, err);
                 if (err.message.includes("Failed to fetch")) {
                     throw new Error("Cannot connect to API server. Is it running?");
                 }
@@ -847,63 +1024,63 @@
         
         // --- GOOGLE API & AUTH (INITIALIZATION) ---
         
-        // Helper to get an Access Token when we need one
-        function getAccessToken(scopes, callback) {
+        /**
+         * --- (Streamlined) Helper to get an Access Token when we need one ---
+         * This function is now the single point of truth for getting a token.
+         * It automatically sets the token for GAPI, removing redundancy.
+         */
+        function getAccessToken(callback) {
           if (!tokenClient || !isAppInitialized) {
             console.error("Token client not initialized.");
             authError.textContent = "Auth client not ready. Please refresh.";
             return;
           }
-
-          // Assign the callback properly (Google style)
+          
+          // --- NEW: Simplified Callback Handling ---
           tokenClient.callback = async (tokenResponse) => {
             if (tokenResponse && tokenResponse.access_token) {
-              console.log("✅ Got access token.");
+              console.log("✅ Got access token. Setting for GAPI.");
               await waitForGapi(); // ensure gapi is ready before using
-              callback(tokenResponse);
+              
+              // --- NEW: Automatically set token for all future gapi calls ---
+              gapi.client.setToken({ access_token: tokenResponse.access_token });
+              
+              // Run the original function (e.g., savePlan)
+              callback();
+              
+            } else if (tokenResponse.error) {
+               console.error("Token Error:", tokenResponse.error, tokenResponse.error_description);
+               alert(`Error getting permission: ${tokenResponse.error_description || tokenResponse.error}. Check popup blocker?`);
+               // Re-enable buttons if auth fails
+               saveBtn.disabled = false;
+               checkinForm.querySelector('button[type="submit"]').disabled = false;
             } else {
               console.error("❌ No access token returned:", tokenResponse);
               alert("Failed to get Google access token. Try signing in again.");
             }
           };
-
-          // Always ask Google for token (silent if already granted)
-          tokenClient.requestAccessToken({
-            prompt: '', // 'consent' if you want force popup every time
-            scope: scopes,
-          });
-
-
             
-            // This is the correct structure. The callback is passed inside
-            // the config object for requestAccessToken.
-            const config = {
-                callback: (tokenResponse) => {
-                    if (tokenResponse.error) {
-                        console.error("Token Error:", tokenResponse.error, tokenResponse.error_description);
-                        alert(`Error getting permission: ${tokenResponse.error_description || tokenResponse.error}. Check popup blocker?`);
-                    }
-                    // Only call the original callback if there's no error
-                    if (!tokenResponse.error) {
-                        callback(tokenResponse);
-                    }
-                }
-            };
-            
-            // Check if we're asking for new scopes
-            const hasGrantedScopes = google.accounts.oauth2.hasGrantedAllScopes(tokenClient, scopes);
+            // Check if we already have permission.
+            const hasGrantedScopes = google.accounts.oauth2.hasGrantedAllScopes(tokenClient, GOOGLE_SCOPES);
 
             if (hasGrantedScopes) {
                 // We already have permission, just get a token silently
-                config.prompt = ''; // Empty prompt for silent
-                tokenClient.requestAccessToken(config);
+                console.log("Already have scopes, requesting token silently.");
+                tokenClient.requestAccessToken({prompt: ''});
             } else {
                 // We need to ask for permission
                 // This will show the popup
-                config.prompt = 'consent';
-                config.scope = scopes;
-                tokenClient.requestAccessToken(config);
+                console.log("Don't have scopes, requesting user consent.");
+                tokenClient.requestAccessToken({prompt: 'consent', scope: GOOGLE_SCOPES});
             }
+        }
+        
+        // --- NEW: Tester Mode Login ---
+        function loginAsTester() {
+            console.log("Logging in as Tester.");
+            loginMode = 'tester';
+            currentUserEmail = 'tester@jimbo.ai'; // Set a placeholder email
+            showAppUI(currentUserEmail);
         }
 
         // Sign Out
@@ -913,6 +1090,7 @@
             allCheckIns = [];
             spreadsheetId = null;
             isAppInitialized = false; // Reset the app state
+            loginMode = null; // <-- NEW: Reset login mode
             if (window.google) google.accounts.id.disableAutoSelect();
             showAuthUI();
             // Re-initialize the app in case they want to log in again
@@ -926,8 +1104,31 @@
             mainAppContainer.classList.remove('hidden');
             authContainer.style.display = 'none'; // Use style.display to match auth logic
             authError.textContent = "";
-            // On login, load all data from Google Drive
-            loadUserDataFromDrive();
+            
+            // --- NEW: UI changes based on loginMode ---
+            if (loginMode === 'google') {
+                pageSubtitle.textContent = "Your data is saved securely to your Google Drive.";
+                saveBtn.textContent = "Save Plan to Google Drive";
+                testerUploadSection.classList.add('hidden');
+                
+                // On login, get permissions *immediately*
+                console.log("App shown. Now getting initial access token and loading data.");
+                getAccessToken(() => {
+                    console.log("Initial auth successful.");
+                    loadUserDataFromDrive();
+                });
+                
+            } else if (loginMode === 'tester') {
+                pageSubtitle.textContent = "You are in Tester Mode. Data is saved locally.";
+                saveBtn.textContent = "Download Data File (.xlsx)";
+                testerUploadSection.classList.remove('hidden');
+                // No Google API calls, just clear the UI
+                apiResponseEl.innerHTML = `<p>Generate a plan. You can save/load it as an Excel file.</p>`;
+                renderCheckins([]);
+            }
+            
+            // Load exercises (common to both modes)
+            loadExercises();
         }
 
         function showAuthUI() {
@@ -938,10 +1139,12 @@
             nutritionResponseEl.innerHTML = `<p>Your generated nutrition plan will appear here...</p>`;
             checkinListEl.innerHTML = `<li class="checkin-item">No check-ins yet.</li>`;
             evalResponseEl.innerHTML = `<p>Evaluation will appear here...</p>`;
+            formAnalysisResponseEl.innerHTML = `<p>Please select an exercise and upload a video to get your form analysis.</p>`;
+            progressContainer.classList.add('hidden'); // Hide progress bar on logout
             saveBtn.disabled = true;
         }
 
-        // --- HTML FORMATTING HELPERS (Using your new UI's functions) ---
+        // --- HTML FORMATTING HELPERS (Unchanged) ---
         function formatWorkoutPlanAsHTML(plan) {
             let html = `<h3>${plan.title}</h3>`;
             html += `<p><strong>Frequency:</strong> ${plan.frequency}</p>`;
@@ -982,7 +1185,7 @@
             html += `</ul>`;
             return html;
         }
-
+        
         function formatEvaluationAsHTML(eval) {
             let html = `<h3>${eval.title}</h3>`;
             html += `<p style="text-align: left; margin: 1rem 0;"><strong>Analysis:</strong> ${eval.analysis}</p>`;
@@ -998,6 +1201,52 @@
             html += `</ul>`;
             return html;
         }
+        
+        function formatFormAnalysisAsHTML(data) {
+            const scores = data.scores;
+            const analysis = data.analysis_markdown;
+            
+            let html = `
+                <h3 style="color: white; font-size: 1.5rem; text-align: center; margin-bottom: 1.5rem;">
+                    Final Score: ${scores['Final Score']} / 100
+                </h3>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                    <div style="background: var(--input-bg); padding: 1rem; border-radius: 12px; border: 1px solid var(--input-border);">
+                        <strong>Spine Score:</strong> ${scores['Spine Score']}/100
+                    </div>
+                    <div style="background: var(--input-bg); padding: 1rem; border-radius: 12px; border: 1px solid var(--input-border);">
+                        <strong>Stability Score:</strong> ${scores['Stability Score']}/100
+                    </div>
+                    <div style="background: var(--input-bg); padding: 1rem; border-radius: 12px; border: 1px solid var(--input-border);">
+                        <strong>Joint Score:</strong> ${scores['Joint Score']}/100
+                    </div>
+                     <div style="background: var(--input-bg); padding: 1rem; border-radius: 12px; border: 1px solid var(--input-border);">
+                        <strong>Control Score:</strong> ${scores['Control Score']}/100
+                    </div>
+                </div>
+            `;
+            
+            // Convert simple markdown from AI to HTML
+            let analysisHtml = analysis
+                .replace(/### (.*)/g, '<h3>$1</h3>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\* (.*)/g, '<li>$1</li>')
+                .replace(/(\r\n|\n|\r)/gm, '<br>'); // Handle newlines
+                
+            // Fix for list items not being in a list
+            analysisHtml = analysisHtml.replace(/<br><li>/g, '<li>');
+            analysisHtml = analysisHtml.replace(/(<li>.*?<\/li>)/g, '<ul>$1</ul>');
+            // This cleans up multiple </ul><ul> between list items
+            analysisHtml = analysisHtml.replace(/<\/ul><br><ul>/g, '');
+            analysisHtml = analysisHtml.replace(/<\/ul><ul>/g, '');
+
+
+            html += analysisHtml;
+            
+            return html;
+        }
+
 
         function renderCheckins(checkins = []) {
             checkinListEl.innerHTML = '';
@@ -1025,6 +1274,8 @@
                 return;
             }
             
+            workoutGenBtn.disabled = true;
+            workoutGenBtn.textContent = "Generating...";
             apiResponseEl.innerHTML = `<p>Generating your plan...</p>`;
             saveBtn.disabled = true;
             saveStatus.textContent = '';
@@ -1047,6 +1298,9 @@
                 saveBtn.disabled = false;
             } catch (error) {
                 apiResponseEl.innerHTML = `<p style="color: var(--error);">Error: ${error.message}</p>`;
+            } finally {
+                workoutGenBtn.disabled = false;
+                workoutGenBtn.textContent = "Generate Plan";
             }
         }
 
@@ -1056,6 +1310,8 @@
                 return;
             }
             
+            nutritionGenBtn.disabled = true;
+            nutritionGenBtn.textContent = "Generating...";
             nutritionResponseEl.innerHTML = `<p>Generating your nutrition plan...</p>`;
             
             const formData = {
@@ -1076,6 +1332,9 @@
             } catch (error) {
                 console.error("Error generating nutrition plan:", error);
                 nutritionResponseEl.innerHTML = `<p style="color: var(--error);">Error: ${error.message}</p>`;
+            } finally {
+                nutritionGenBtn.disabled = false;
+                nutritionGenBtn.textContent = "Generate Nutrition Plan";
             }
         }
 
@@ -1086,10 +1345,12 @@
             }
 
             if (!currentPlan || Object.keys(currentPlan).length === 0 || allCheckIns.length === 0) {
-                evalResponseEl.innerHTML = `<p style="color: var(--error);">No plan or check-ins found. Generate and save a plan, then log some progress first.</p>`;
+                evalResponseEl.innerHTML = `<p style="color: var(--error);">No plan or check-ins found. Save/upload a plan and log progress first.</p>`;
                 return;
             }
-
+            
+            evaluateBtn.disabled = true;
+            evaluateBtn.textContent = "Evaluating...";
             evalResponseEl.innerHTML = `<p>Evaluating your progress...</p>`;
 
             try {
@@ -1104,60 +1365,264 @@
             } catch (error) {
                 console.error("Error evaluating progress:", error);
                 evalResponseEl.innerHTML = `<p style="color: var(--error);">Error: ${error.message}</p>`;
+            } finally {
+                evaluateBtn.disabled = false;
+                evaluateBtn.textContent = "Evaluate Progress";
+            }
+        }
+        
+        async function loadExercises() {
+            try {
+                const exercises = await apiFetch('/exercises');
+                exerciseSelect.innerHTML = '<option value="">Select an exercise...</option>'; // Clear "loading"
+                exercises.forEach(ex => {
+                    const option = document.createElement('option');
+                    option.value = ex;
+                    option.textContent = ex;
+                    exerciseSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error("Error loading exercises:", error);
+                exerciseSelect.innerHTML = '<option value="">Could not load exercises</option>';
+            }
+        }
+        
+        // --- *** UPDATED Form Analysis function for STREAMING *** ---
+        async function analyzeForm(event) {
+            event.preventDefault();
+            if (!currentUserEmail) {
+                formAnalysisResponseEl.innerHTML = `<p style="color: var(--error);">You must be logged in to analyze form.</p>`;
+                return;
+            }
+
+            const exercise = exerciseSelect.value;
+            const videoFile = videoUpload.files[0];
+
+            if (!exercise) {
+                formAnalysisResponseEl.innerHTML = `<p style="color: var(--error);">Please select an exercise.</p>`;
+                return;
+            }
+            if (!videoFile) {
+                formAnalysisResponseEl.innerHTML = `<p style="color: var(--error);">Please upload a video file.</p>`;
+                return;
+            }
+
+            analyzeFormBtn.disabled = true;
+            analyzeFormBtn.textContent = "Analyzing...";
+            // Show and reset progress bar
+            progressContainer.classList.remove('hidden');
+            progressStatus.textContent = "Uploading video...";
+            progressBar.style.width = "5%"; // Start with a small amount
+            formAnalysisResponseEl.innerHTML = ""; // Clear previous results
+
+            const formData = new FormData();
+            formData.append('exercise_name', exercise);
+            formData.append('video', videoFile);
+
+            try {
+                const response = await fetch(`${API_URL}/analyze-form`, {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    // Handle non-streaming errors (e.g., 400, 500)
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                }
+
+                // --- Start reading the stream ---
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = ''; // To store incomplete JSON chunks
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) {
+                        break; // Stream finished
+                    }
+
+                    buffer += decoder.decode(value, { stream: true });
+                    
+                    // Process all complete JSON objects in the buffer (split by newline)
+                    let newlineIndex;
+                    while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
+                        const line = buffer.substring(0, newlineIndex);
+                        buffer = buffer.substring(newlineIndex + 1);
+
+                        if (line.trim() === "") continue;
+
+                        try {
+                            const progressUpdate = JSON.parse(line);
+                            
+                            // Update UI based on the streamed object
+                            progressStatus.textContent = progressUpdate.message;
+                            progressBar.style.width = `${progressUpdate.percent}%`;
+
+                            if (progressUpdate.status === 'complete') {
+                                // This is the final message with the data
+                                formAnalysisResponseEl.innerHTML = formatFormAnalysisAsHTML(progressUpdate.data);
+                                progressContainer.classList.add('hidden'); // Hide progress on complete
+                            }
+                            if (progressUpdate.status === 'error') {
+                                throw new Error(progressUpdate.message);
+                            }
+
+                        } catch (e) {
+                            console.warn("Error parsing stream chunk:", line, e);
+                            // Don't throw, just log and continue
+                        }
+                    }
+                }
+
+            } catch (error) {
+                console.error("Error analyzing form:", error);
+                formAnalysisResponseEl.innerHTML = `<p style="color: var(--error);">Error: ${error.message}</p>`;
+                progressContainer.classList.add('hidden'); // Hide progress on error
+            } finally {
+                analyzeFormBtn.disabled = false;
+                analyzeFormBtn.textContent = "Analyze Form";
+            }
+        }
+        
+        // --- NEW: Save Button Logic ---
+        function handleSaveClick() {
+            if (loginMode === 'google') {
+                savePlanToGoogleDrive();
+            } else if (loginMode === 'tester') {
+                savePlanToExcel();
+            }
+        }
+        
+        // --- NEW: Tester Mode Save to Excel ---
+        function savePlanToExcel() {
+            if (!currentPlan) {
+              saveStatus.textContent = "No plan to save.";
+              return;
+            }
+            saveBtn.disabled = true;
+            saveStatus.textContent = "Generating Excel file...";
+
+            try {
+                // Create data in the format SheetJS expects (array of objects)
+                // We wrap the plan JSON in an object for the sheet
+                const planData = [{ plan_json: JSON.stringify(currentPlan) }];
+                // Check-ins are already an array of objects
+                const checkInData = allCheckIns.length > 0 ? allCheckIns : [{ Date: "No check-ins yet" }];
+
+                // Create worksheets
+                const ws_plan = XLSX.utils.json_to_sheet(planData);
+                const ws_checkins = XLSX.utils.json_to_sheet(checkInData);
+                
+                // Create a new workbook
+                const wb = XLSX.utils.book_new();
+                
+                // Add worksheets to the workbook
+                XLSX.utils.book_append_sheet(wb, ws_plan, "Plan");
+                XLSX.utils.book_append_sheet(wb, ws_checkins, "CheckIns");
+                
+                // Write the workbook and trigger a download
+                XLSX.writeFile(wb, "Jimbo_Data.xlsx");
+                
+                saveStatus.textContent = "✅ File downloaded as Jimbo_Data.xlsx";
+            } catch (e) {
+                console.error("Error saving to Excel:", e);
+                saveStatus.textContent = `❌ Error: ${e.message}`;
+            } finally {
+                saveBtn.disabled = false;
             }
         }
 
-        // --- GOOGLE SHEETS & DRIVE LOGIC ---
-
-        function loadUserDataFromDrive() {
-            apiResponseEl.innerHTML = `<p>Checking Google Drive for data...</p>`;
-            getAccessToken(DRIVE_SCOPES + ' ' + SHEETS_SCOPES, async (tokenResponse) => {
-                if (tokenResponse.error) {
-                    apiResponseEl.innerHTML = `<p style="color: var(--error);">Error getting access: ${tokenResponse.error_description || tokenResponse.error}</p>`;
-                    return;
-                }
-                gapi.client.setToken({ access_token: tokenResponse.access_token });
-                
+        // --- NEW: Tester Mode Upload from Excel ---
+        function loadDataFromExcel(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
                 try {
-                    const file = await findSpreadsheet();
-                    if (file) {
-                        spreadsheetId = file.id;
-                        apiResponseEl.innerHTML = `<p>Data file found. Loading...</p>`;
-                        
-                        const sheetData = await gapi.client.sheets.spreadsheets.values.batchGet({
-                            spreadsheetId: spreadsheetId,
-                            ranges: ['Plan!A:Z', 'CheckIns!A:Z'],
-                        });
-                        
-                        const planRows = sheetData.result.valueRanges[0].values;
-                        if (planRows && planRows.length > 0 && planRows[0][0]) {
-                            currentPlan = JSON.parse(planRows[0][0]);
-                            apiResponseEl.innerHTML = formatWorkoutPlanAsHTML(currentPlan);
-                            saveBtn.disabled = false;
-                        } else {
-                            apiResponseEl.innerHTML = `<p>No plan saved yet. Generate one!</p>`;
-                        }
-                        
-                        const checkInRows = sheetData.result.valueRanges[1].values;
-                        if (checkInRows && checkInRows.length > 1) { // 1 for header
-                            allCheckIns = checkInRows.slice(1).map(row => ({
-                                date: row[0],
-                                weight_kg: row[1] || null,
-                                notes: row[2]
-                            })).reverse(); // Show newest first
-                            renderCheckins(allCheckIns);
-                        } else {
-                            renderCheckins([]);
-                        }
+                    const data = e.target.result;
+                    const workbook = XLSX.read(data, { type: 'binary' });
+                    
+                    // 1. Load Plan
+                    const planSheet = workbook.Sheets["Plan"];
+                    if (!planSheet) throw new Error("Missing 'Plan' sheet in file.");
+                    const planData = XLSX.utils.sheet_to_json(planSheet);
+                    
+                    if (planData.length > 0 && planData[0].plan_json) {
+                        currentPlan = JSON.parse(planData[0].plan_json);
+                        apiResponseEl.innerHTML = formatWorkoutPlanAsHTML(currentPlan);
+                        saveBtn.disabled = false;
                     } else {
-                        apiResponseEl.innerHTML = `<p>No data file found. Save a plan to create one.</p>`;
+                        throw new Error("Could not find plan data in 'Plan' sheet.");
+                    }
+                    
+                    // 2. Load Check-Ins
+                    const checkInSheet = workbook.Sheets["CheckIns"];
+                    if (!checkInSheet) throw new Error("Missing 'CheckIns' sheet in file.");
+                    const checkInData = XLSX.utils.sheet_to_json(checkInSheet);
+
+                    // Filter out any placeholder data
+                    allCheckIns = checkInData.filter(row => row.Date !== "No check-ins yet");
+                    renderCheckins(allCheckIns);
+                    
+                    uploadStatus.textContent = `✅ Success! Loaded ${allCheckIns.length} check-ins and 1 plan.`;
+                    uploadFileName.textContent = file.name;
+
+                } catch (err) {
+                    console.error("Error reading Excel file:", err);
+                    uploadStatus.textContent = `❌ Error: ${err.message}`;
+                    uploadFileName.textContent = "Choose .xlsx file...";
+                }
+            };
+            reader.onerror = (e) => {
+                 uploadStatus.textContent = `❌ Error reading file.`;
+            };
+            reader.readAsBinaryString(file);
+        }
+
+        // --- GOOGLE SHEETS & DRIVE LOGIC (Streamlined) ---
+
+        async function loadUserDataFromDrive() {
+            apiResponseEl.innerHTML = `<p>Checking Google Drive for data...</p>`;
+            // We already have a token from the initial login, so gapi.client.setToken
+            // has already been called. We can just make the calls.
+            try {
+                const file = await findSpreadsheet();
+                if (file) {
+                    spreadsheetId = file.id;
+                    apiResponseEl.innerHTML = `<p>Data file found. Loading...</p>`;
+                    
+                    const sheetData = await gapi.client.sheets.spreadsheets.values.batchGet({
+                        spreadsheetId: spreadsheetId,
+                        ranges: ['Plan!A:Z', 'CheckIns!A:Z'],
+                    });
+                    
+                    const planRows = sheetData.result.valueRanges[0].values;
+                    if (planRows && planRows.length > 0 && planRows[0][0]) {
+                        currentPlan = JSON.parse(planRows[0][0]);
+                        apiResponseEl.innerHTML = formatWorkoutPlanAsHTML(currentPlan);
+                        saveBtn.disabled = false;
+                    } else {
+                        apiResponseEl.innerHTML = `<p>No plan saved yet. Generate one!</p>`;
+                    }
+                    
+                    const checkInRows = sheetData.result.valueRanges[1].values;
+                    if (checkInRows && checkInRows.length > 1) { // 1 for header
+                        allCheckIns = checkInRows.slice(1).map(row => ({
+                            date: row[0],
+                            weight_kg: row[1] || null,
+                            notes: row[2]
+                        })).reverse(); // Show newest first
+                        renderCheckins(allCheckIns);
+                    } else {
                         renderCheckins([]);
                     }
-                } catch (e) {
-                    console.error("Error in loadUserDataFromDrive:", e);
-                    apiResponseEl.innerHTML = `<p style="color: var(--error);">Error loading data from Sheet: ${e.message}</p>`;
+                } else {
+                    apiResponseEl.innerHTML = `<p>No data file found. Save a plan to create one.</p>`;
+                    renderCheckins([]);
                 }
-            });
+            } catch (e) {
+                console.error("Error in loadUserDataFromDrive:", e);
+                apiResponseEl.innerHTML = `<p style="color: var(--error);">Error loading data from Sheet: ${e.message}</p>`;
+            }
         }
 
         async function findSpreadsheet() {
@@ -1191,19 +1656,21 @@
             return spreadsheetId;
         }
 
-        async function savePlanToDrive() {
+        function savePlanToGoogleDrive() {
             if (!currentPlan) {
               saveStatus.textContent = "No plan to save.";
               return;
             }
-
             saveStatus.textContent = "Requesting Google Drive access...";
+            saveBtn.disabled = true;
 
-            getAccessToken(DRIVE_SCOPES + ' ' + SHEETS_SCOPES, async (tokenResponse) => {
-              try {
-                await waitForGapi(); // ensure gapi is ready
-                gapi.client.setToken({ access_token: tokenResponse.access_token });
-
+            // This will request a token (or use a cached one) and run _doSavePlan
+            getAccessToken(_doSavePlanToGoogle); 
+        }
+        
+        async function _doSavePlanToGoogle() {
+            // This function only runs *after* getAccessToken is successful
+            try {
                 if (!spreadsheetId) {
                   saveStatus.textContent = "Checking for existing file...";
                   const file = await findSpreadsheet();
@@ -1235,15 +1702,53 @@
                   style="color: var(--purple-light); text-decoration: underline;">
                     Open Sheet
                   </a>`;
-              } catch (e) {
-                console.error("Error in savePlanToDrive:", e);
+            } catch (e) {
+                console.error("Error in _doSavePlanToGoogle:", e);
                 saveStatus.textContent = `❌ Error saving plan: ${e.message}`;
-              }
-            });
-          }
+            } finally {
+                saveBtn.disabled = false;
+            }
+        }
 
+        // --- NEW: Check-in Logic Router ---
+        function handleCheckinSubmit(e) {
+            e.preventDefault();
+            const checkinBtn = checkinForm.querySelector('button[type="submit"]');
+            checkinBtn.disabled = true;
+            checkinBtn.textContent = "Saving...";
 
-        function addCheckinToDrive() {
+            if (loginMode === 'google') {
+                getAccessToken(() => _doAddCheckinToGoogle(checkinBtn));
+            } else if (loginMode === 'tester') {
+                _doAddCheckinLocally(checkinBtn);
+            }
+        }
+        
+        // --- NEW: Tester Mode Local Check-in ---
+        function _doAddCheckinLocally(checkinBtn) {
+            const checkinData = {
+                date: document.getElementById('checkin-date').value,
+                weight_kg: document.getElementById('checkin-weight').value || "",
+                notes: document.getElementById('checkin-notes').value,
+            };
+            if (!checkinData.date || !checkinData.notes) {
+                alert("Date and Notes are required.");
+                checkinBtn.disabled = false;
+                checkinBtn.textContent = "Log Check-In";
+                return;
+            }
+            
+            allCheckIns.unshift(checkinData); // Add to front
+            renderCheckins(allCheckIns);
+            checkinForm.reset();
+            
+            checkinBtn.disabled = false;
+            checkinBtn.textContent = "Log Check-In";
+            saveStatus.textContent = "Check-in added. Download data to save.";
+            if(saveBtn.disabled) saveStatus.textContent = "Check-in added. Generate and save a plan to download.";
+        }
+
+        async function _doAddCheckinToGoogle(checkinBtn) {
             const checkinData = {
                 date: document.getElementById('checkin-date').value,
                 weight_kg: document.getElementById('checkin-weight').value || "", // Send empty string for empty cell
@@ -1251,52 +1756,76 @@
             };
             if (!checkinData.date || !checkinData.notes) {
                 alert("Date and Notes are required.");
+                checkinBtn.disabled = false;
+                checkinBtn.textContent = "Log Check-In";
                 return;
             }
-            
-            getAccessToken(DRIVE_SCOPES + ' ' + SHEETS_SCOPES, async (tokenResponse) => {
-                if (tokenResponse.error) { alert(`Error: ${tokenResponse.error_description || tokenResponse.error}`); return; }
-                gapi.client.setToken({ access_token: tokenResponse.access_token });
 
-                try {
-                    if (!spreadsheetId) {
-                        const file = await findSpreadsheet();
-                        if(file) {
-                            spreadsheetId = file.id;
-                        } else {
-                            const newSheetId = await createSpreadsheet();
-                            spreadsheetId = newSheetId.spreadsheetId || newSheetId;
-                        }
+            try {
+                if (!spreadsheetId) {
+                    const file = await findSpreadsheet();
+                    if(file) {
+                        spreadsheetId = file.id;
+                    } else {
+                        const newSheetId = await createSpreadsheet();
+                        spreadsheetId = newSheetId.spreadsheetId || newSheetId;
                     }
-
-                    await gapi.client.sheets.spreadsheets.values.append({
-                        spreadsheetId: spreadsheetId,
-                        range: 'CheckIns!A:C',
-                        valueInputOption: 'RAW',
-                        insertDataOption: 'INSERT_ROWS',
-                        resource: {
-                            values: [[checkinData.date, checkinData.weight_kg, checkinData.notes]]
-                        }
-                    });
-                    
-                    allCheckIns.unshift(checkinData); // Add to front
-                    renderCheckins(allCheckIns);
-                    checkinForm.reset();
-                    
-                } catch (e) {
-                    console.error("Error in addCheckinToDrive:", e);
-                    alert(`Error saving check-in: ${e.message}`);
                 }
-            });
+
+                await gapi.client.sheets.spreadsheets.values.append({
+                    spreadsheetId: spreadsheetId,
+                    range: 'CheckIns!A:C',
+                    valueInputOption: 'RAW',
+                    insertDataOption: 'INSERT_ROWS',
+                    resource: {
+                        values: [[checkinData.date, checkinData.weight_kg, checkinData.notes]]
+                    }
+                });
+                
+                allCheckIns.unshift(checkinData); // Add to front
+                renderCheckins(allCheckIns);
+                checkinForm.reset();
+                
+            } catch (e) {
+                console.error("Error in _doAddCheckinToGoogle:", e);
+                alert(`Error saving check-in: ${e.message}`);
+            } finally {
+                checkinBtn.disabled = false;
+                checkinBtn.textContent = "Log Check-In";
+            }
         }
 
         // --- EVENT LISTENERS ---
         signOutBtn.addEventListener('click', signOutUser);
+        testerLoginBtn.addEventListener('click', loginAsTester); // NEW
+        
         workoutForm.addEventListener('submit', (e) => { e.preventDefault(); generateWorkout(); });
         nutritionForm.addEventListener('submit', (e) => { e.preventDefault(); generateNutrition(); });
-        checkinForm.addEventListener('submit', (e) => { e.preventDefault(); addCheckinToDrive(); });
-        saveBtn.addEventListener('click', savePlanToDrive);
+        checkinForm.addEventListener('submit', handleCheckinSubmit); // UPDATED
+        saveBtn.addEventListener('click', handleSaveClick); // UPDATED
         evaluateBtn.addEventListener('click', evaluateProgress);
+        formAnalysisForm.addEventListener('submit', analyzeForm);
+        
+        // File input listeners
+        videoUpload.addEventListener('change', () => {
+            if (videoUpload.files.length > 0) {
+                fileNameDisplay.textContent = videoUpload.files[0].name;
+                fileNameDisplay.style.color = 'var(--text)';
+            } else {
+                fileNameDisplay.textContent = 'Choose a video file...';
+                fileNameDisplay.style.color = '#888';
+            }
+        });
+        
+        // NEW: Tester mode file upload listener
+        uploadDataFile.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                uploadFileName.textContent = file.name;
+                loadDataFromExcel(file);
+            }
+        });
+
 
         // Listen for our custom sign-in event
         document.addEventListener('google-signin-success', (event) => {
@@ -1307,8 +1836,9 @@
                     if(currentUserEmail) return; // Already processed
                     
                     window.pendingGoogleLogin = null; // Clear pending
+                    loginMode = 'google'; // <-- NEW: Set login mode
                     currentUserEmail = userData.email;
-                    showAppUI(currentUserEmail);
+                    showAppUI(currentUserEmail); // This now triggers the auth flow
                 } else {
                     setTimeout(processLogin, 100);
                 }
@@ -1316,7 +1846,7 @@
             processLogin();
         });
         
-        // Tab navigation from your UI
+        // Tab navigation
         document.querySelectorAll('.nav-item').forEach(item => {
             item.addEventListener('click', () => {
                 document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
@@ -1327,41 +1857,6 @@
                 document.getElementById('page-title').textContent = item.querySelector('.nav-text').textContent;
             });
         });
-        
-        // Your SVG icon loader
-        async function loadSVG(url) {
-            try {
-                const res = await fetch(url);
-                if (!res.ok) return '<svg fill="currentColor" width="22" height="22"><circle cx="11" cy="11" r="8"/></svg>';
-                const text = await res.text();
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(text, 'image/svg+xml');
-                const svg = doc.querySelector('svg');
-                if (svg) {
-                    svg.setAttribute('fill', 'currentColor');
-                    svg.setAttribute('width', '22');
-                    svg.setAttribute('height', '22');
-                    return svg.outerHTML;
-                }
-            } catch (e) { console.error(e); }
-            return '<svg fill="currentColor" width="22" height="22"><circle cx="11" cy="11" r="8"/></svg>';
-        }
-
-        async function replaceSidebarIcons() {
-            const icons = {
-                "workout": 'images/running-man-8580.svg',
-                "nutrition": 'images/fork-knife-svgrepo-com.svg',
-                "progress": 'images/update-svgrepo-com.svg',
-                "coach": 'images/chart-line-up-svgrepo-com.svg'
-            };
-            for (const [tab, url] of Object.entries(icons)) {
-                const item = document.querySelector(`.nav-item[data-tab="${tab}"]`);
-                if (item) {
-                    const svg = item.querySelector('svg');
-                    if (svg) svg.outerHTML = await loadSVG(url);
-                }
-            }
-        }
 
         // --- INITIALIZATION FUNCTION ---
         async function initializeApp() {
@@ -1404,15 +1899,15 @@
                         
                         // 4. Render the sign-in button
                         google.accounts.id.renderButton(
-                            document.getElementById("google-sign-in-button-placeholder"),
+                            googleSignInBtn,
                             { theme: "outline", size: "large", type: "standard", text: "sign_in_with", shape: "rectangular", logo_alignment: "left" } 
                         );
                         
                         // 5. Initialize the Token Client (for Sheets/Drive)
                         tokenClient = google.accounts.oauth2.initTokenClient({
                             client_id: CLIENT_ID,
-                            scope: `${DRIVE_SCOPES} ${SHEETS_SCOPES}`,
-                            callback: '', // Will be set dynamically
+                            scope: GOOGLE_SCOPES,
+                            callback: '', // Will be set dynamically by getAccessToken
                         });
 
                         // 6. SET THE APP AS INITIALIZED
@@ -1424,6 +1919,7 @@
                             console.log("Processing pending login...");
                             const userData = window.pendingGoogleLogin;
                             window.pendingGoogleLogin = null; // Clear it
+                            loginMode = 'google'; // <-- NEW: Set login mode
                             currentUserEmail = userData.email;
                             showAppUI(currentUserEmail);
                         }
@@ -1436,16 +1932,13 @@
             } catch (error) {
                 console.error("Initialization failed:", error);
                 authError.textContent = `Error: ${error.message}`;
-                const btnPlaceholder = document.getElementById("google-sign-in-button-placeholder");
-                if(btnPlaceholder) btnPlaceholder.innerHTML = `<p style="color: var(--error);">${error.message}</p>`;
+                googleSignInBtn.innerHTML = `<p style="color: var(--error);">${error.message}</p>`;
             }
         }
         
         // --- START THE APP ---
         initializeApp();
         
-        // Load your custom icons
-        replaceSidebarIcons();
     });
   </script>
 </body>

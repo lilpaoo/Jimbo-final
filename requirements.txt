@@ -1,4 +1,9 @@
 flask
+flask-cors
 google-generativeai
 python-dotenv
-Flask-CORS
+opencv-python-headless
+numpy
+tensorflow
+tensorflow-hub
+dtw-python
