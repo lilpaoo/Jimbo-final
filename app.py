@@ -46,7 +46,7 @@ MIN_CONFIDENCE = 0.3
 # --- OPTIMIZATION 1: PROCESS EVERY Nth FRAME ---
 # 1 = process every frame (slow)
 # 3 = process 1/3 of frames (much faster)
-FRAME_SKIP_RATE = 3 
+FRAME_SKIP_RATE = 1 
 
 
 KEYPOINT_DICT = {
@@ -398,7 +398,7 @@ def call_gemini_for_analysis(exercise_name, scores):
     5. Control Score (10% weight): Based on primary joint DTW (e.g., elbow/knee).
 
     **OUTPUT FORMAT (Do not change structure, fill in the brackets):**
-    (The text below is translated from Vietnamese; maintain exact length.)
+    (Keep the output structure and text concise.)
 
     ```markdown
     ### 1. OVERVIEW ASSESSMENT
@@ -602,6 +602,24 @@ Follow these rules:
     * `recommendations`: Give 2 simple, actionable tips.
 """
 
+CHAT_SYSTEM_PROMPT = """
+You are Jimbo, an AI Personal Trainer.
+A user has just generated a plan and has some follow-up questions.
+Your task is to answer their questions based *only* on the plan provided and the chat history.
+Be helpful, concise, and stay in character.
+
+**CONTEXT - THE USER'S PLAN:**
+{context_plan}
+
+**CHAT HISTORY (So Far):**
+{chat_history}
+
+**USER'S NEW QUESTION:**
+{user_message}
+
+**YOUR ANSWER:**
+"""
+
 @app.route('/generate-workout', methods=['POST'])
 def generate_workout_v2():
     if not json_model:
@@ -689,6 +707,35 @@ def evaluate_plan():
     except Exception as e:
         print(f"Gemini Error: {e}")
         return jsonify({"error": "Failed to evaluate progress from AI."}), 500
+
+@app.route('/chat-with-plan', methods=['POST'])
+def chat_with_plan():
+    if not text_model:
+        return jsonify({"error": "Gemini text model not configured"}), 500
+
+    data = request.get_json()
+    if not data or 'context_plan' not in data or 'message' not in data:
+         return jsonify({"error": "Missing 'context_plan' or 'message' data"}), 400
+
+    context_plan = json.dumps(data['context_plan'], indent=2)
+    user_message = data['message']
+    
+    # Handle chat history
+    history = data.get('history', [])
+    history_str = "\n".join([f"{msg['role']}: {msg['content']}" for msg in history])
+
+    prompt = CHAT_SYSTEM_PROMPT.format(
+        context_plan=context_plan,
+        chat_history=history_str,
+        user_message=user_message
+    )
+
+    try:
+        response = text_model.generate_content(prompt)
+        return jsonify({"response": response.text}), 200
+    except Exception as e:
+        print(f"Gemini Chat Error: {e}")
+        return jsonify({"error": "Failed to get chat response from AI."}), 500
 
 # === NEW VIDEO ANALYSIS ENDPOINTS (from coach_app) ===
 

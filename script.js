@@ -75,9 +75,13 @@ document.addEventListener('DOMContentLoaded', () => {
     let loginMode = null; // 'google' or 'tester'
     let currentPlan = null;     // Holds the last generated plan
     let allCheckIns = [];       // Holds check-ins read from Sheet
+    let currentNutritionPlan = null; // Holds the last generated nutrition plan
+    let workoutChatHistory = [];
+    let nutritionChatHistory = [];
     let currentUserEmail = null;
     let tokenClient = null;     // Google's token client
     let spreadsheetId = null;   // The ID of the user's data file
+    let hasBeenAuthorized = false;
 
     // --- UI ELEMENTS ---
     const authContainer = document.getElementById('auth-container');
@@ -96,11 +100,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveBtn = document.getElementById('save-btn');
     const saveStatus = document.getElementById('save-status');
     const workoutGenBtn = document.getElementById('workout-generate-btn');
+    const workoutChatWidget = document.getElementById('workout-chat-widget');
+    const workoutChatHistoryEl = document.getElementById('workout-chat-history');
+    const workoutChatInput = document.getElementById('workout-chat-input');
+    const workoutChatSend = document.getElementById('workout-chat-send');
 
     // Nutrition Tab
     const nutritionForm = document.getElementById('nutrition-form');
     const nutritionResponseEl = document.getElementById('nutrition-response');
     const nutritionGenBtn = document.getElementById('nutrition-generate-btn');
+    const saveNutritionBtn = document.getElementById('save-nutrition-btn');
+    const saveNutritionStatus = document.getElementById('save-nutrition-status');
+    const nutritionChatWidget = document.getElementById('nutrition-chat-widget');
+    const nutritionChatHistoryEl = document.getElementById('nutrition-chat-history');
+    const nutritionChatInput = document.getElementById('nutrition-chat-input');
+    const nutritionChatSend = document.getElementById('nutrition-chat-send');
 
     // Progress Tab
     const checkinForm = document.getElementById('checkin-form');
@@ -162,55 +176,65 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- GOOGLE API & AUTH (INITIALIZATION) ---
     
     /**
-     * --- (Streamlined) Helper to get an Access Token when we need one ---
-     * This function is now the single point of truth for getting a token.
-     * It automatically sets the token for GAPI, removing redundancy.
-     */
-    function getAccessToken(callback) {
-      if (!tokenClient || !isAppInitialized) {
-        console.error("Token client not initialized.");
-        authError.textContent = "Auth client not ready. Please refresh.";
-        return;
-      }
-      
-      // --- NEW: Simplified Callback Handling ---
-      tokenClient.callback = async (tokenResponse) => {
-        if (tokenResponse && tokenResponse.access_token) {
-          console.log("✅ Got access token. Setting for GAPI.");
-          await waitForGapi(); // ensure gapi is ready before using
-          
-          // --- NEW: Automatically set token for all future gapi calls ---
-          gapi.client.setToken({ access_token: tokenResponse.access_token });
-          
-          // Run the original function (e.g., savePlan)
-          callback();
-          
-        } else if (tokenResponse.error) {
-           console.error("Token Error:", tokenResponse.error, tokenResponse.error_description);
-           alert(`Error getting permission: ${tokenResponse.error_description || tokenResponse.error}. Check popup blocker?`);
-           // Re-enable buttons if auth fails
-           saveBtn.disabled = false;
-           checkinForm.querySelector('button[type="submit"]').disabled = false;
-        } else {
-          console.error("❌ No access token returned:", tokenResponse);
-          alert("Failed to get Google access token. Try signing in again.");
-        }
-      };
-        
-        // Check if we already have permission.
-        const hasGrantedScopes = google.accounts.oauth2.hasGrantedAllScopes(tokenClient, GOOGLE_SCOPES);
+ * --- (Streamlined) Helper to get an Access Token when we need one ---
+ * This function is now the single point of truth for getting a token.
+ * It automatically sets the token for GAPI, removing redundancy.
+ */
+function getAccessToken(callback) {
+  if (!tokenClient || !isAppInitialized) {
+    console.error("Token client not initialized.");
+    authError.textContent = "Auth client not ready. Please refresh.";
+    // Re-enable buttons on error
+    if (saveBtn) saveBtn.disabled = false;
+    if (checkinForm) checkinForm.querySelector('button[type="submit"]').disabled = false;
+    return;
+  }
 
-        if (hasGrantedScopes) {
-            // We already have permission, just get a token silently
-            console.log("Already have scopes, requesting token silently.");
-            tokenClient.requestAccessToken({prompt: ''});
-        } else {
-            // We need to ask for permission
-            // This will show the popup
-            console.log("Don't have scopes, requesting user consent.");
-            tokenClient.requestAccessToken({prompt: 'consent', scope: GOOGLE_SCOPES});
-        }
+  // --- UPDATE: Handle Callback ---
+  tokenClient.callback = async (tokenResponse) => {
+    if (tokenResponse && tokenResponse.access_token) {
+      console.log("✅ Got access token. Setting for GAPI.");
+      await waitForGapi(); // ensure gapi is ready before use
+
+      // Automatically set token for all future gapi calls
+      gapi.client.setToken({ access_token: tokenResponse.access_token });
+
+      // MARK THAT WE HAVE BEEN AUTHORIZED
+      hasBeenAuthorized = true; 
+
+      // Run the original callback (e.g., handleLoginAndAuthorization or _doSavePlanToGoogle)
+      callback();
+
+    } else if (tokenResponse.error) {
+       console.error("Token Error:", tokenResponse.error, tokenResponse.error_description);
+       alert(`Error getting permission: ${tokenResponse.error_description || tokenResponse.error}. Check popup blocker?`);
+       // Re-enable buttons if auth fails
+       if (saveBtn) saveBtn.disabled = false;
+       if (checkinForm) checkinForm.querySelector('button[type="submit"]').disabled = false;
+       const googleLoginButton = document.getElementById('google-login-btn');
+       if (googleLoginButton) {
+            googleLoginButton.disabled = false;
+            googleLoginButton.textContent = "Sign in with Google";
+       }
+    } else {
+      console.error("❌ No access token returned:", tokenResponse);
+      alert("Failed to get Google access token. Try signing in again.");
     }
+  };
+
+  // --- UPDATED LOGIC ---
+  // Instead of hasGrantedAllScopes, we use our own state variable.
+  if (hasBeenAuthorized) {
+      // We were previously authorized, just get token silently.
+      console.log("Already authorized, requesting token silently.");
+      tokenClient.requestAccessToken({prompt: 'select_account'});
+  } else {
+      // This is the first time, or a previous attempt failed.
+      // Request consent explicitly.
+      console.log("Requesting user consent (first time or re-auth).");
+      tokenClient.requestAccessToken({prompt: 'consent', scope: GOOGLE_SCOPES});
+  }
+}
     
     // --- NEW: Tester Mode Login ---
     function loginAsTester() {
@@ -224,49 +248,57 @@ document.addEventListener('DOMContentLoaded', () => {
     function signOutUser() {
         currentUserEmail = null;
         currentPlan = null;
+        currentNutritionPlan = null;
+        workoutChatHistory = [];
+        nutritionChatHistory = [];
         allCheckIns = [];
         spreadsheetId = null;
         isAppInitialized = false; // Reset the app state
         loginMode = null; // <-- NEW: Reset login mode
         if (window.google) google.accounts.id.disableAutoSelect();
         showAuthUI();
+        
+        // Hide chat widgets
+        workoutChatWidget.classList.add('hidden');
+        nutritionChatWidget.classList.add('hidden');
+        // Clear chat history
+        workoutChatHistoryEl.innerHTML = "";
+        nutritionChatHistoryEl.innerHTML = "";
+        
         // Re-initialize the app in case they want to log in again
         initializeApp();
     }
 
     // --- UI TOGGLING ---
-    function showAppUI(email) {
-        userEmail.textContent = email;
-        userEmailSidebar.textContent = email.split('@')[0]; // Show username
-        mainAppContainer.classList.remove('hidden');
-        authContainer.style.display = 'none'; // Use style.display to match auth logic
-        authError.textContent = "";
+    // (New Version)
+function showAppUI(email) {
+    userEmail.textContent = email;
+    userEmailSidebar.textContent = email.split('@')[0]; // Show username
+    mainAppContainer.classList.remove('hidden');
+    authContainer.style.display = 'none'; // Use style.display to match auth logic
+    authError.textContent = "";
+    
+    if (loginMode === 'google') {
+        pageSubtitle.textContent = "Your data is saved securely to your Google Drive.";
+        saveBtn.textContent = "Save Plan to Google Drive";
+        testerUploadSection.classList.add('hidden');
         
-        // --- NEW: UI changes based on loginMode ---
-        if (loginMode === 'google') {
-            pageSubtitle.textContent = "Your data is saved securely to your Google Drive.";
-            saveBtn.textContent = "Save Plan to Google Drive";
-            testerUploadSection.classList.add('hidden');
-            
-            // On login, get permissions *immediately*
-            console.log("App shown. Now getting initial access token and loading data.");
-            getAccessToken(() => {
-                console.log("Initial auth successful.");
-                loadUserDataFromDrive();
-            });
-            
-        } else if (loginMode === 'tester') {
-            pageSubtitle.textContent = "You are in Tester Mode. Data is saved locally.";
-            saveBtn.textContent = "Download Data File (.xlsx)";
-            testerUploadSection.classList.remove('hidden');
-            // No Google API calls, just clear the UI
-            apiResponseEl.innerHTML = `<p>Generate a plan. You can save/load it as an Excel file.</p>`;
-            renderCheckins([]);
-        }
+        // Token has been retrieved, JUST LOAD DATA
+        console.log("App shown. Loading user data from Drive.");
+        loadUserDataFromDrive();
         
-        // Load exercises (common to both modes)
-        loadExercises();
+    } else if (loginMode === 'tester') {
+        pageSubtitle.textContent = "You are in Tester Mode. Data is saved locally.";
+        saveBtn.textContent = "Download Data File (.xlsx)";
+        testerUploadSection.classList.remove('hidden');
+        // No Google API calls, just clear the UI
+        apiResponseEl.innerHTML = `<p>Generate a plan. You can save/load it as an Excel file.</p>`;
+        renderCheckins([]);
     }
+    
+    // Load exercises (common to both modes)
+    loadExercises();
+}
 
     function showAuthUI() {
         mainAppContainer.classList.add('hidden');
@@ -279,6 +311,7 @@ document.addEventListener('DOMContentLoaded', () => {
         formAnalysisResponseEl.innerHTML = `<p>Please select an exercise and upload a video to get your form analysis.</p>`;
         progressContainer.classList.add('hidden'); // Hide progress bar on logout
         saveBtn.disabled = true;
+        saveNutritionBtn.disabled = true;
     }
 
     // --- HTML FORMATTING HELPERS (Unchanged) ---
@@ -403,8 +436,132 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    /**
+         * Convert workout plan JSON object to a 2D array
+         * for nice display in a spreadsheet.
+         */
+        function getFriendlyPlanData(plan) {
+            const data = [];
+            
+            if (!plan) return data; 
+
+            // Add summary info
+            data.push(["Title", plan.title || ""]);
+            data.push(["Frequency", plan.frequency || ""]);
+            data.push(["", ""]); // Empty row for spacing
+
+            // Add table headers
+            data.push(["Day", "Focus", "Type", "Details"]);
+
+            // Add exercises
+            if (plan.days && Array.isArray(plan.days)) {
+                plan.days.forEach(day => {
+                    let dayAdded = false; // Only add day name and focus on the first row
+                    
+                    if (day.warm_up) {
+                        data.push([day.day, day.focus, "Warm-up", day.warm_up]);
+                        dayAdded = true;
+                    }
+                    if (day.exercises && Array.isArray(day.exercises)) {
+                        day.exercises.forEach(ex => {
+                            // If day/focus hasn't been added, add it to the first row
+                            data.push([
+                                dayAdded ? "" : day.day, 
+                                dayAdded ? "" : day.focus, 
+                                "Exercise", 
+                                `${ex.name}: ${ex.sets_reps}`
+                            ]);
+                            dayAdded = true;
+                        });
+                    }
+                    if (day.cool_down) {
+                        data.push([
+                            dayAdded ? "" : day.day, 
+                            dayAdded ? "" : day.focus, 
+                            "Cool-down", 
+                            day.cool_down
+                        ]);
+                    }
+                    
+                    data.push(["", "", "", ""]); // Empty row between days
+                });
+            }
+            
+            // Add motivational tip
+            data.push(["", "", "", ""]); // Empty row
+            data.push(["Motivational Tip", "", "", plan.motivational_tip || ""]);
+
+            return data;
+        }
+
+        function getFriendlyNutritionData(plan) {
+            const data = [];
+            if (!plan) return data;
+
+            data.push(["Title", plan.title]);
+            data.push(["", ""]); // Empty row
+            data.push(["Target", "Value"]);
+            data.push(["Calories", plan.targets.calories]);
+            data.push(["Protein", plan.targets.protein]);
+            data.push(["Carbs", plan.targets.carbs]);
+            data.push(["Fats", plan.targets.fats]);
+            data.push(["", ""]); // Empty row
+            data.push(["Meal", "Example"]);
+            plan.sample_plan.forEach(meal => {
+                data.push([meal.meal, meal.description]);
+            });
+            data.push(["", ""]); // Empty row
+            data.push(["Key Tips"]);
+            plan.key_tips.forEach(tip => {
+                data.push([tip]);
+            });
+            return data;
+        }
+
 
     // --- CORE APP LOGIC (API Calls) ---
+
+    async function handleLoginAndAuthorization() {
+    // This function is called AFTER getAccessToken succeeds
+    // and gapi.client.setToken has been called
+    try {
+        // 1. Call 'userinfo' API to get email
+        const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: {
+                'Authorization': `Bearer ${gapi.client.getToken().access_token}`
+            }
+        });
+        
+        if (!userInfoResponse.ok) {
+            throw new Error("Could not fetch user info.");
+        }
+
+        const userData = await userInfoResponse.json();
+        
+        if (!userData.email) {
+            throw new Error("No email found in user info.");
+        }
+
+        // 2. Set application state
+        loginMode = 'google';
+        currentUserEmail = userData.email;
+
+        // 3. Show the application UI
+        showAppUI(currentUserEmail);
+
+    } catch (error) {
+        console.error("Error in handleLoginAndAuthorization:", error);
+        authError.textContent = `Error getting user info: ${error.message}`;
+        // Re-enable button on error
+        const googleLoginButton = document.getElementById('google-login-btn');
+        if (googleLoginButton) {
+            googleLoginButton.disabled = false;
+            googleLoginButton.textContent = "Sign in with Google";
+        }
+    }
+}
+
+
     async function generateWorkout() {
         if (!currentUserEmail) {
             apiResponseEl.innerHTML = `<p style="color: var(--error);">You must be logged in to generate a plan.</p>`;
@@ -433,6 +590,12 @@ document.addEventListener('DOMContentLoaded', () => {
             currentPlan = plan; // Store in local state
             apiResponseEl.innerHTML = formatWorkoutPlanAsHTML(plan);
             saveBtn.disabled = false;
+            
+            // Show chat
+            workoutChatHistory = []; // Reset history
+            workoutChatHistoryEl.innerHTML = ""; // Clear UI
+            workoutChatWidget.classList.remove('hidden'); // Show widget
+            
         } catch (error) {
             apiResponseEl.innerHTML = `<p style="color: var(--error);">Error: ${error.message}</p>`;
         } finally {
@@ -465,7 +628,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'POST',
                 body: JSON.stringify(formData)
             });
+            
+            currentNutritionPlan = plan; // Store state
             nutritionResponseEl.innerHTML = formatNutritionPlanAsHTML(plan);
+            saveNutritionBtn.disabled = false; // Enable save button
+            
+            nutritionChatHistory = []; // Reset history
+            nutritionChatHistoryEl.innerHTML = ""; // Clear UI
+            nutritionChatWidget.classList.remove('hidden'); // Show widget
+            
         } catch (error) {
             console.error("Error generating nutrition plan:", error);
             nutritionResponseEl.innerHTML = `<p style="color: var(--error);">Error: ${error.message}</p>`;
@@ -623,54 +794,70 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // --- NEW: Save Button Logic ---
-    function handleSaveClick() {
+    function handleSaveWorkoutClick() {
         if (loginMode === 'google') {
             savePlanToGoogleDrive();
         } else if (loginMode === 'tester') {
-            savePlanToExcel();
+            saveAllDataToExcel();
         }
     }
     
-    // --- NEW: Tester Mode Save to Excel ---
-    function savePlanToExcel() {
-        if (!currentPlan) {
+    // --- UPDATED: Save ALL data to Excel ---
+    function saveAllDataToExcel() {
+        if (!currentPlan && !currentNutritionPlan) {
           saveStatus.textContent = "No plan to save.";
           return;
         }
+
         saveBtn.disabled = true;
-        saveStatus.textContent = "Generating Excel file...";
+        saveNutritionBtn.disabled = true;
+        const statusEl = saveStatus.textContent ? saveStatus : saveNutritionStatus;
+        statusEl.textContent = "Generating Excel file...";
 
         try {
-            // Create data in the format SheetJS expects (array of objects)
-            // We wrap the plan JSON in an object for the sheet
-            const planData = [{ plan_json: JSON.stringify(currentPlan) }];
-            // Check-ins are already an array of objects
-            const checkInData = allCheckIns.length > 0 ? allCheckIns : [{ Date: "No check-ins yet" }];
-
-            // Create worksheets
-            const ws_plan = XLSX.utils.json_to_sheet(planData);
-            const ws_checkins = XLSX.utils.json_to_sheet(checkInData);
-            
-            // Create a new workbook
             const wb = XLSX.utils.book_new();
+
+            // Sheet 1 & 2: Workout Data
+            if (currentPlan) {
+                const planData = [{ plan_json: JSON.stringify(currentPlan) }];
+                const ws_plan_data = XLSX.utils.json_to_sheet(planData);
+                XLSX.utils.book_append_sheet(wb, ws_plan_data, "Plan_Data");
+
+                const friendlyData = getFriendlyPlanData(currentPlan);
+                const ws_plan_readable = XLSX.utils.aoa_to_sheet(friendlyData);
+                XLSX.utils.book_append_sheet(wb, ws_plan_readable, "Workout Plan");
+            }
             
-            // Add worksheets to the workbook
-            XLSX.utils.book_append_sheet(wb, ws_plan, "Plan");
+            // Sheet 3 & 4: Nutrition Data
+            if (currentNutritionPlan) {
+                const nutriData = [{ nutrition_json: JSON.stringify(currentNutritionPlan) }];
+                const ws_nutri_data = XLSX.utils.json_to_sheet(nutriData);
+                XLSX.utils.book_append_sheet(wb, ws_nutri_data, "Nutrition_Data");
+                
+                const friendlyNutriData = getFriendlyNutritionData(currentNutritionPlan);
+                const ws_nutri_readable = XLSX.utils.aoa_to_sheet(friendlyNutriData);
+                XLSX.utils.book_append_sheet(wb, ws_nutri_readable, "Nutrition Plan");
+            }
+
+            // Sheet 5: Check-in Data
+            const checkInData = allCheckIns.length > 0 ? allCheckIns : [{ Date: "No check-ins yet" }];
+            const ws_checkins = XLSX.utils.json_to_sheet(checkInData);
             XLSX.utils.book_append_sheet(wb, ws_checkins, "CheckIns");
             
-            // Write the workbook and trigger a download
+            // Download the file
             XLSX.writeFile(wb, "Jimbo_Data.xlsx");
             
-            saveStatus.textContent = "✅ File downloaded as Jimbo_Data.xlsx";
+            statusEl.textContent = "✅ File downloaded as Jimbo_Data.xlsx";
         } catch (e) {
             console.error("Error saving to Excel:", e);
-            saveStatus.textContent = `❌ Error: ${e.message}`;
+            statusEl.textContent = `❌ Error: ${e.message}`;
         } finally {
-            saveBtn.disabled = false;
+            if(currentPlan) saveBtn.disabled = false;
+            if(currentNutritionPlan) saveNutritionBtn.disabled = false;
         }
     }
 
-    // --- NEW: Tester Mode Upload from Excel ---
+    // --- UPDATED: Tester Mode Upload from Excel ---
     function loadDataFromExcel(file) {
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -678,29 +865,43 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = e.target.result;
                 const workbook = XLSX.read(data, { type: 'binary' });
                 
-                // 1. Load Plan
-                const planSheet = workbook.Sheets["Plan"];
-                if (!planSheet) throw new Error("Missing 'Plan' sheet in file.");
-                const planData = XLSX.utils.sheet_to_json(planSheet);
-                
-                if (planData.length > 0 && planData[0].plan_json) {
-                    currentPlan = JSON.parse(planData[0].plan_json);
-                    apiResponseEl.innerHTML = formatWorkoutPlanAsHTML(currentPlan);
-                    saveBtn.disabled = false;
-                } else {
-                    throw new Error("Could not find plan data in 'Plan' sheet.");
+                let loadedPlans = 0;
+                let loadedCheckins = 0;
+
+                // 1. Load Workout Plan
+                const planSheet = workbook.Sheets["Plan_Data"];
+                if (planSheet) {
+                    const planData = XLSX.utils.sheet_to_json(planSheet);
+                    if (planData.length > 0 && planData[0].plan_json) {
+                        currentPlan = JSON.parse(planData[0].plan_json);
+                        apiResponseEl.innerHTML = formatWorkoutPlanAsHTML(currentPlan);
+                        saveBtn.disabled = false;
+                        loadedPlans++;
+                    }
+                }
+
+                // 2. Load Nutrition Plan
+                const nutritionSheet = workbook.Sheets["Nutrition_Data"];
+                if (nutritionSheet) {
+                    const nutriData = XLSX.utils.sheet_to_json(nutritionSheet);
+                    if (nutriData.length > 0 && nutriData[0].nutrition_json) {
+                        currentNutritionPlan = JSON.parse(nutriData[0].nutrition_json);
+                        nutritionResponseEl.innerHTML = formatNutritionPlanAsHTML(currentNutritionPlan);
+                        saveNutritionBtn.disabled = false;
+                        loadedPlans++;
+                    }
                 }
                 
-                // 2. Load Check-Ins
+                // 3. Load Check-Ins
                 const checkInSheet = workbook.Sheets["CheckIns"];
-                if (!checkInSheet) throw new Error("Missing 'CheckIns' sheet in file.");
-                const checkInData = XLSX.utils.sheet_to_json(checkInSheet);
-
-                // Filter out any placeholder data
-                allCheckIns = checkInData.filter(row => row.Date !== "No check-ins yet");
-                renderCheckins(allCheckIns);
+                if (checkInSheet) {
+                    const checkInData = XLSX.utils.sheet_to_json(checkInSheet);
+                    allCheckIns = checkInData.filter(row => row.Date !== "No check-ins yet");
+                    renderCheckins(allCheckIns);
+                    loadedCheckins = allCheckIns.length;
+                }
                 
-                uploadStatus.textContent = `✅ Success! Loaded ${allCheckIns.length} check-ins and 1 plan.`;
+                uploadStatus.textContent = `✅ Success! Loaded ${loadedPlans} plan(s) and ${loadedCheckins} check-in(s).`;
                 uploadFileName.textContent = file.name;
 
             } catch (err) {
@@ -727,12 +928,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 spreadsheetId = file.id;
                 apiResponseEl.innerHTML = `<p>Data file found. Loading...</p>`;
                 
+                // UPDATE: Add 2 new ranges
                 const sheetData = await gapi.client.sheets.spreadsheets.values.batchGet({
                     spreadsheetId: spreadsheetId,
-                    ranges: ['Plan!A:Z', 'CheckIns!A:Z'],
+                    ranges: ['Plan_Data!A1', 'CheckIns!A:Z', 'Nutrition_Data!A1'],
                 });
                 
-                const planRows = sheetData.result.valueRanges[0].values;
+                const valueRanges = sheetData.result.valueRanges;
+                
+                // Index 0: Workout Plan
+                const planRows = valueRanges[0] ? valueRanges[0].values : null;
                 if (planRows && planRows.length > 0 && planRows[0][0]) {
                     currentPlan = JSON.parse(planRows[0][0]);
                     apiResponseEl.innerHTML = formatWorkoutPlanAsHTML(currentPlan);
@@ -741,7 +946,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     apiResponseEl.innerHTML = `<p>No plan saved yet. Generate one!</p>`;
                 }
                 
-                const checkInRows = sheetData.result.valueRanges[1].values;
+                // Index 1: Check-Ins
+                const checkInRows = valueRanges[1] ? valueRanges[1].values : null;
                 if (checkInRows && checkInRows.length > 1) { // 1 for header
                     allCheckIns = checkInRows.slice(1).map(row => ({
                         date: row[0],
@@ -752,6 +958,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     renderCheckins([]);
                 }
+                
+                // NEW - Index 2: Nutrition Plan
+                const nutritionRows = valueRanges[2] ? valueRanges[2].values : null;
+                if (nutritionRows && nutritionRows.length > 0 && nutritionRows[0][0]) {
+                    currentNutritionPlan = JSON.parse(nutritionRows[0][0]);
+                    nutritionResponseEl.innerHTML = formatNutritionPlanAsHTML(currentNutritionPlan);
+                    saveNutritionBtn.disabled = false;
+                } else {
+                    nutritionResponseEl.innerHTML = `<p>No nutrition plan saved yet. Generate one!</p>`;
+                }
+                
             } else {
                 apiResponseEl.innerHTML = `<p>No data file found. Save a plan to create one.</p>`;
                 renderCheckins([]);
@@ -777,11 +994,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const response = await gapi.client.sheets.spreadsheets.create({
             properties: { title: SPREADSHEET_FILE_NAME },
             sheets: [
-                { properties: { title: 'Plan' } },
-                { properties: { title: 'CheckIns' } }
+                { properties: { title: 'Workout Plan' } }, // Sheet for user viewing
+                { properties: { title: 'Nutrition Plan' } }, // New sheet for user viewing
+                { properties: { title: 'CheckIns' } },
+                { properties: { title: 'Plan_Data' } },     // Sheet for machine reading
+                { properties: { title: 'Nutrition_Data' } }  // New sheet for machine reading
             ]
         });
         spreadsheetId = response.result.spreadsheetId;
+        
+        // Add headers for CheckIns sheet
         await gapi.client.sheets.spreadsheets.values.update({
             spreadsheetId: spreadsheetId,
             range: 'CheckIns!A1:C1',
@@ -801,7 +1023,7 @@ document.addEventListener('DOMContentLoaded', () => {
         saveStatus.textContent = "Requesting Google Drive access...";
         saveBtn.disabled = true;
 
-        // This will request a token (or use a cached one) and run _doSavePlan
+        // This will request a token (or use a cached one) and run _doSavePlanToGoogle
         getAccessToken(_doSavePlanToGoogle); 
     }
     
@@ -819,18 +1041,36 @@ document.addEventListener('DOMContentLoaded', () => {
               }
             }
 
+            // 1. Prepare JSON data for machine reading
             const planAsJsonString = JSON.stringify(currentPlan);
-            const data = [{
-              range: 'Plan!A1',
+            const machineData = {
+              range: 'Plan_Data!A1', // Write to Plan_Data sheet
               values: [[planAsJsonString]]
-            }];
+            };
 
+            // 2. Prepare data for human reading
+            const friendlyData = getFriendlyPlanData(currentPlan);
+            const humanData = {
+                range: 'Workout Plan!A1', // Write to Workout Plan sheet
+                values: friendlyData
+            };
+            
+            // Clear old content of 'Workout Plan' sheet before overwriting
+            await gapi.client.sheets.spreadsheets.values.clear({
+                spreadsheetId: spreadsheetId,
+                range: 'Workout Plan' 
+            });
+
+            // 3. Perform batchUpdate to write both
             saveStatus.textContent = "Saving plan to Google Sheet...";
             await gapi.client.sheets.spreadsheets.values.batchUpdate({
               spreadsheetId: spreadsheetId,
               resource: {
-                valueInputOption: 'RAW',
-                data: data
+                valueInputOption: 'USER_ENTERED', // Use USER_ENTERED to let Google auto-format
+                data: [
+                    machineData, // JSON data package
+                    humanData    // Friendly table data package
+                ]
               }
             });
 
@@ -846,6 +1086,81 @@ document.addEventListener('DOMContentLoaded', () => {
             saveBtn.disabled = false;
         }
     }
+    
+    // --- NEW NUTRITION SAVE FUNCTIONS ---
+    
+    function handleSaveNutritionClick() {
+        if (loginMode === 'google') {
+            saveNutritionToGoogleDrive();
+        } else if (loginMode === 'tester') {
+            saveAllDataToExcel(); // Both buttons call the same Excel save function
+        }
+    }
+
+    function saveNutritionToGoogleDrive() {
+        if (!currentNutritionPlan) {
+          saveNutritionStatus.textContent = "No nutrition plan to save.";
+          return;
+        }
+        saveNutritionStatus.textContent = "Requesting Google Drive access...";
+        saveNutritionBtn.disabled = true;
+
+        getAccessToken(_doSaveNutritionToGoogle); 
+    }
+    
+    async function _doSaveNutritionToGoogle() {
+        try {
+            if (!spreadsheetId) {
+              saveNutritionStatus.textContent = "Checking for existing file...";
+              const file = await findSpreadsheet();
+              if (file) {
+                spreadsheetId = file.id;
+              } else {
+                saveNutritionStatus.textContent = "No file found. Creating new one...";
+                spreadsheetId = await createSpreadsheet();
+              }
+            }
+
+            // 1. Prepare JSON data for machine reading
+            const planAsJsonString = JSON.stringify(currentNutritionPlan);
+            const machineData = {
+              range: 'Nutrition_Data!A1', // Write to Nutrition_Data sheet
+              values: [[planAsJsonString]]
+            };
+
+            // 2. Prepare data for human reading
+            const friendlyData = getFriendlyNutritionData(currentNutritionPlan);
+            const humanData = {
+                range: 'Nutrition Plan!A1', // Write to Nutrition Plan sheet
+                values: friendlyData
+            };
+            
+            // Clear old content of 'Nutrition Plan' sheet
+            await gapi.client.sheets.spreadsheets.values.clear({
+                spreadsheetId: spreadsheetId,
+                range: 'Nutrition Plan' 
+            });
+
+            // 3. Perform batchUpdate
+            saveNutritionStatus.textContent = "Saving nutrition plan...";
+            await gapi.client.sheets.spreadsheets.values.batchUpdate({
+              spreadsheetId: spreadsheetId,
+              resource: {
+                valueInputOption: 'USER_ENTERED',
+                data: [ machineData, humanData ]
+              }
+            });
+
+            saveNutritionStatus.innerHTML = `✅ <strong>Success!</strong> Plan saved.`;
+        } catch (e) {
+            const errorMsg = e.result?.error?.message || e.message || 'An unknown error occurred';
+            console.error("Error in _doSaveNutritionToGoogle:", JSON.stringify(e)); // Log the full error
+            saveNutritionStatus.textContent = `❌ Error saving plan: ${errorMsg}`;  
+        } finally {
+            saveNutritionBtn.disabled = false;
+        }
+    }
+
 
     // --- NEW: Check-in Logic Router ---
     function handleCheckinSubmit(e) {
@@ -931,6 +1246,72 @@ document.addEventListener('DOMContentLoaded', () => {
             checkinBtn.textContent = "Log Check-In";
         }
     }
+    
+    // --- NEW CHAT HANDLER FUNCTIONS ---
+    
+    // Helper to add a message to the chat UI
+    function appendToChatHistory(el, message, role) {
+        const p = document.createElement('p');
+        p.classList.add(role === 'user' ? 'chat-user' : 'chat-ai');
+        p.innerHTML = `<strong>${role === 'user' ? 'You' : 'Jimbo'}:</strong> ${message}`;
+        el.appendChild(p);
+        el.scrollTop = el.scrollHeight; // Auto-scroll to bottom
+    }
+
+    async function handleWorkoutChatSend() {
+        const message = workoutChatInput.value.trim();
+        if (!message || !currentPlan) return;
+
+        workoutChatInput.value = ""; // Clear input
+        appendToChatHistory(workoutChatHistoryEl, message, 'user');
+        workoutChatHistory.push({ role: 'user', content: message });
+
+        try {
+            const data = await apiFetch('/chat-with-plan', {
+                method: 'POST',
+                body: JSON.stringify({
+                    context_plan: currentPlan,
+                    history: workoutChatHistory,
+                    message: message
+                })
+            });
+            
+            const aiResponse = data.response;
+            appendToChatHistory(workoutChatHistoryEl, aiResponse, 'ai');
+            workoutChatHistory.push({ role: 'ai', content: aiResponse });
+
+        } catch (error) {
+            appendToChatHistory(workoutChatHistoryEl, `Error: ${error.message}`, 'ai');
+        }
+    }
+
+    async function handleNutritionChatSend() {
+        const message = nutritionChatInput.value.trim();
+        if (!message || !currentNutritionPlan) return;
+
+        nutritionChatInput.value = ""; // Clear input
+        appendToChatHistory(nutritionChatHistoryEl, message, 'user');
+        nutritionChatHistory.push({ role: 'user', content: message });
+
+        try {
+            const data = await apiFetch('/chat-with-plan', {
+                method: 'POST',
+                body: JSON.stringify({
+                    context_plan: currentNutritionPlan,
+                    history: nutritionChatHistory,
+                    message: message
+                })
+            });
+            
+            const aiResponse = data.response;
+            appendToChatHistory(nutritionChatHistoryEl, aiResponse, 'ai');
+            nutritionChatHistory.push({ role: 'ai', content: aiResponse });
+
+        } catch (error) {
+            appendToChatHistory(nutritionChatHistoryEl, `Error: ${error.message}`, 'ai');
+        }
+    }
+
 
     // --- EVENT LISTENERS ---
     signOutBtn.addEventListener('click', signOutUser);
@@ -939,9 +1320,20 @@ document.addEventListener('DOMContentLoaded', () => {
     workoutForm.addEventListener('submit', (e) => { e.preventDefault(); generateWorkout(); });
     nutritionForm.addEventListener('submit', (e) => { e.preventDefault(); generateNutrition(); });
     checkinForm.addEventListener('submit', handleCheckinSubmit); // UPDATED
-    saveBtn.addEventListener('click', handleSaveClick); // UPDATED
+    
+    saveBtn.addEventListener('click', handleSaveWorkoutClick); // UPDATED
+    saveNutritionBtn.addEventListener('click', handleSaveNutritionClick); // NEW
+    
     evaluateBtn.addEventListener('click', evaluateProgress);
     formAnalysisForm.addEventListener('submit', analyzeForm);
+    
+    // Chat Listeners
+    workoutChatSend.addEventListener('click', handleWorkoutChatSend);
+    nutritionChatSend.addEventListener('click', handleNutritionChatSend);
+    // Allow sending with Enter key
+    workoutChatInput.addEventListener('keypress', (e) => e.key === 'Enter' && handleWorkoutChatSend());
+    nutritionChatInput.addEventListener('keypress', (e) => e.key === 'Enter' && handleNutritionChatSend());
+    
     
     // File input listeners
     videoUpload.addEventListener('change', () => {
@@ -1028,38 +1420,29 @@ document.addEventListener('DOMContentLoaded', () => {
             
             checkGoogle(() => {
                 try {
-                    // 3. Initialize Sign-In
-                    google.accounts.id.initialize({
-                        client_id: CLIENT_ID,
-                        callback: window.onSignIn // Point to the global function
-                    });
-                    
-                    // 4. Render the sign-in button
-                    google.accounts.id.renderButton(
-                        googleSignInBtn,
-                        { theme: "outline", size: "large", type: "standard", text: "sign_in_with", shape: "rectangular", logo_alignment: "left" } 
-                    );
-                    
-                    // 5. Initialize the Token Client (for Sheets/Drive)
+                    // 3. Initialize the Token Client (for Sheets/Drive)
                     tokenClient = google.accounts.oauth2.initTokenClient({
                         client_id: CLIENT_ID,
                         scope: GOOGLE_SCOPES,
                         callback: '', // Will be set dynamically by getAccessToken
                     });
 
-                    // 6. SET THE APP AS INITIALIZED
+                    // 4. Assign click event to your new login button
+                    const googleLoginButton = document.getElementById('google-login-btn');
+                    if (googleLoginButton) {
+                        googleLoginButton.addEventListener('click', () => {
+                            // Disable button to prevent double clicks
+                            googleLoginButton.disabled = true;
+                            googleLoginButton.textContent = "Connecting...";
+
+                            // Start the login AND authorization flow
+                            getAccessToken(handleLoginAndAuthorization);
+                        });
+                    }
+                    
+                    // 5. SET THE APP AS INITIALIZED
                     isAppInitialized = true;
                     console.log("Application is initialized.");
-                    
-                    // 7. Check for a pending login (race condition fix)
-                    if (window.pendingGoogleLogin) {
-                        console.log("Processing pending login...");
-                        const userData = window.pendingGoogleLogin;
-                        window.pendingGoogleLogin = null; // Clear it
-                        loginMode = 'google'; // <-- NEW: Set login mode
-                        currentUserEmail = userData.email;
-                        showAppUI(currentUserEmail);
-                    }
                 } catch(e) {
                     console.error("Error during Google init:", e);
                     authError.textContent = `Error during Google init: ${e.message}`;
