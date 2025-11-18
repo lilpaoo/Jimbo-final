@@ -198,6 +198,30 @@ See `requirements.txt` for the full list. Key packages include:
 
 Feel free to submit issues, feature requests, or pull requests to improve this project.
 
+## 🐳 Run with Docker
+
+You can run this application using Docker without installing Python or any libraries. This image already includes the correct_movement.db database file.
+
+*Requirements:*
+* You must have Docker installed (Docker Desktop).
+
+* You must have your own 2 API keys: GOOGLE_API_KEY and GOOGLE_CLIENT_ID (see [Prerequisites](#prerequisites)).
+
+---
+
+### How to run a Container
+
+Open your terminal (PowerShell, CMD, etc.) and run the following command.
+
+*Replace* YOUR_API_KEY_HERE and YOUR_CLIENT_ID_HERE with your API key:
+
+```sh
+docker run -d -p 5000:5000 \ 
+-e GOOGLE_API_KEY="YOUR_API_KEY_HERE" \ 
+-e GOOGLE_CLIENT_ID="YOUR_CLIENT_ID_HERE" \ 
+--name jimbo_app \ 
+trungdt226/jimbo-final-web:latest
+
 ## License
 
 This project is open-source and available under the MIT License.
