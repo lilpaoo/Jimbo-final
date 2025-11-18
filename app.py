@@ -1,6 +1,6 @@
 import os
 import json
-import sqlite3
+import pysqlite3 as sqlite3
 import cv2
 import numpy as np
 import tensorflow as tf
