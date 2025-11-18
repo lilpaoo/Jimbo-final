@@ -1460,3 +1460,35 @@ function showAppUI(email) {
     initializeApp();
     
 });
+
+const sidebar = document.querySelector('.sidebar');
+const main = document.querySelector('.main');
+const toggleBtn = document.getElementById('sidebar-toggle');
+
+toggleBtn.addEventListener('click', () => {
+  sidebar.classList.toggle('collapsed');
+  main.classList.toggle('collapsed');
+});
+
+// === LANDING → MODAL LOGIN (ĐÃ SỬA HOÀN CHỈNH) ===
+document.getElementById('start-btn')?.addEventListener('click', () => {
+  const modal = document.getElementById('login-modal');
+  modal.classList.remove('hidden');     // BỎ hidden đi
+  modal.classList.add('active');         // Hiện modal
+  document.getElementById('landing-page').style.filter = 'blur(8px)';
+});
+
+// Đóng modal
+document.querySelector('.modal-close')?.addEventListener('click', () => {
+  const modal = document.getElementById('login-modal');
+  modal.classList.add('hidden');         // Thêm lại hidden
+  modal.classList.remove('active');
+  document.getElementById('landing-page').style.filter = 'blur(0)';
+});
+
+// Đóng khi click ngoài
+document.getElementById('login-modal')?.addEventListener('click', (e) => {
+  if (e.target === document.getElementById('login-modal')) {
+    document.querySelector('.modal-close').click(); // Gọi nút đóng luôn cho gọn
+  }
+});

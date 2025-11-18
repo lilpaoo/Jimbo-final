@@ -19,35 +19,41 @@
 </head>
 <body>
 
+  <!-- THAY TOÀN BỘ div#auth-container BẰNG CÁI NÀY -->
   <div id="auth-container">
-    <header class="auth-header">
-      <div class="auth-logo">
-        <img src="images/logo.png" alt="Jimbo Logo">
+    <!-- Landing page đẹp như FitPlan -->
+    <div id="landing-page">
+      <img class="landing-image" src="images/landing-bg.jpg" alt="Jimbo Image">
+      <div class="landing-content">
+        <h1>Jimbo</h1>
+        <p>Achieve your fitness goals with personalized workout plans and progress tracking.</p>
+        <button id="start-btn" class="start-button">Start</button>
       </div>
-      <nav class="auth-nav">
-        <a href="#" class="auth-link">Share Jimbo with friends</a>
-      </nav>
-    </header>
+    </div>
 
-    <div class="auth-wrapper">
-      <div class="auth-box-new">
-        <h2>Welcome to Jimbo</h2>
-        <p style="margin-bottom: 1.5rem; color: rgba(255,255,255,0.8); font-size: 0.95rem;">
-          Your AI-powered personal trainer. Sign in to get started.
-        </p>
+    <!-- Modal login (ẩn lúc đầu) -->
+    <div id="login-modal" class="modal hidden">
+      <div class="modal-content">
+        <button class="modal-close">&times;</button>
+        <div class="auth-box-new">
+          <h2 style="color: #2dd4bf">Welcome to Jimbo</h2>
+          <p style="margin-top: 0.8rem; margin-bottom: 1.5rem; color: rgba(0, 0, 0, 0.9); font-size: 0.95rem;">
+            Your AI-powered personal trainer. Sign in to get started.
+          </p>
 
-        <div class="auth-social">
-          <button id="google-login-btn" class="btn google-btn">
-            <svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="18px" height="18px" viewBox="0 0 48 48"><g><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path><path fill="#FBBC05" d="M10.53 28.59c-.49-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24s.92 7.54 2.56 10.78l7.97-6.19z"></path><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.82l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path><path fill="none" d="M0 0h48v48H0z"></path></g></svg>
-            <span>Sign in with Google</span>
-          </button>
-          
-          <div class="auth-or" style="margin: 1rem 0;"><span>OR</span></div>
-          
-          <button id="tester-login-btn" class="btn-secondary">Login as Tester</button>
+          <div class="auth-social">
+            <button id="google-login-btn" class="btn google-btn">
+              <svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="18px" height="18px" viewBox="0 0 48 48"><g><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path><path fill="#FBBC05" d="M10.53 28.59c-.49-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24s.92 7.54 2.56 10.78l7.97-6.19z"></path><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.82l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path><path fill="none" d="M0 0h48v48H0z"></path></g></svg>
+              <span>Sign in with Google</span>
+            </button>
+            
+            <div class="auth-or"><span>OR</span></div>
+            
+            <button id="tester-login-btn" class="btn-secondary">Login as Tester</button>
+          </div>
+
+          <p id="auth-error"></p>
         </div>
-
-        <p id="auth-error"></p>
       </div>
     </div>
   </div>
@@ -57,32 +63,40 @@
       <div class="logo">
         <img src="images/logo.png" alt="Jimbo">
       </div>
+      <button id="sidebar-toggle" class="sidebar-toggle">☰</button>
+
       <nav>
-        <div class="nav-item active" data-tab="workout">
+        <div class="nav-item" data-tab="workout">
           <svg fill="currentColor" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4Zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10Z"/></svg>
           <span class="nav-text">Workout Generator</span>
         </div>
         <div class="nav-item" data-tab="nutrition">
-           <svg fill="currentColor" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="M12.4 1.108a.5.5 0 0 1 .6 0l1.645 1.646a.5.5 0 0 1 0 .707L13.01 5.097l-2.04-2.04 1.43-1.43.001-.001zM11.363 3.15l-8.48 8.482L1.17 13.34l-.493.493a.5.5 0 0 1-.707 0L.01 13.167a.5.5 0 0 1 0-.707l.493-.493 1.708-1.707 8.48-8.481 1.671 1.67zM3 16s.5 0 .5-.5V9.034l.879.879.707-.707L2.021 6.14a.5.5 0 0 0-.707 0L.6 6.857l.707.707L2.186 6.68l.814.814V15.5c0 .5.5.5.5.5zM16 4a.5.5 0 0 1-.5.5h-5a.5.5 0 0 1 0-1h5a.5.5 0 0 1 .5.5z"/></svg>
+          <svg version="1.1" id="_x32_" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512" xml:space="preserve" fill="#000000"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <style type="text/css">  .st0{fill:#000000;}  </style> <g> <path class="st0" d="M215.078,8.156c-9.297,0-16.828,7.531-16.828,16.844v84.188h-27.203V23.328 C171.047,10.438,160.609,0,147.734,0c-12.891,0-23.328,10.438-23.328,23.328v85.859H97.219V25c0-9.313-7.547-16.844-16.844-16.844 S63.531,15.688,63.531,25v107.5h0.313c2.563,19.625,22.344,38.313,51.484,46.375v294.281c0,17.875,14.516,32.375,32.406,32.375 c17.875,0,32.359-14.5,32.359-32.375V178.094c25.313-7.219,48.906-22.516,51.547-45.594h0.266V25 C231.906,15.688,224.375,8.156,215.078,8.156z"></path> <path class="st0" d="M363.266,16.031c-18.797-6.375-47.188-10.188-47.188,18.656c0,0,0,419.594,0,443.375 c0,23.75,13.578,33.938,30.547,33.938s30.531-10.188,30.531-30.563c0-20.344,0-185.281,0-185.281s35.656,0,50.938,0 s20.375-18.688,20.375-32.281c0,0,0-50.969,0-93.406C448.469,78.281,403.031,29.563,363.266,16.031z"></path> </g> </g></svg>
           <span class="nav-text">Nutrition Generator</span>
         </div>
         <div class="nav-item" data-tab="progress">
-           <svg fill="currentColor" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="M14 0H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zM2 1a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V1z"/><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/></svg>
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125z"/>
+          </svg>
           <span class="nav-text">Progress Logger</span>
         </div>
         <div class="nav-item" data-tab="form-analysis">
-          <svg fill="currentColor" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="M0 12V4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2zm15 0a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14z"/><path d="M11.25 5.668a.5.5 0 0 1 .52-.038l3 2.5a.5.5 0 0 1 0 .74l-3 2.5a.5.5 0 0 1-.818-.52l1.232-1.027-1.232-1.027a.5.5 0 0 1 .298-.702zM1 4.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 0 1.5h-3.5A.75.75 0 0 1 1 4.25zm0 4a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 0 1.5h-3.5A.75.75 0 0 1 1 8.25zm0 4a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 0 1.5h-3.5A.75.75 0 0 1-.75-.75z"/></svg>
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25z"/>
+          </svg>
           <span class="nav-text">Form Analysis</span>
         </div>
         <div class="nav-item" data-tab="coach">
-          <svg fill="currentColor" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="M11 2a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v12h.5a.5.5 0 0 1 0 1H.5a.5.5 0 0 1 0-1H1v-3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3h1V7a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v7h1V2zM2 3v10h2V3H2zm4 4v7h2V7H6zm4 0v7h2V7h-2z"/></svg>
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z"/>
+          </svg>
           <span class="nav-text">Coach Evaluation</span>
         </div>
       </nav>
       <div class="user-profile">
         <div class="user-avatar">U</div>
         <div>
-          <div id="user-email-sidebar" style="font-weight: 600; color: white;">User</div>
+          <div id="user-email-sidebar" style="font-weight: 600; color: #2dd4bf;">User</div>
           <div style="font-size: 0.8rem; color: var(--text-light);">Member</div>
         </div>
       </div>
