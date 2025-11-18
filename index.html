@@ -71,7 +71,9 @@
           <span class="nav-text">Workout Generator</span>
         </div>
         <div class="nav-item" data-tab="nutrition">
-          <svg version="1.1" id="_x32_" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512" xml:space="preserve" fill="#000000"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <style type="text/css">  .st0{fill:#000000;}  </style> <g> <path class="st0" d="M215.078,8.156c-9.297,0-16.828,7.531-16.828,16.844v84.188h-27.203V23.328 C171.047,10.438,160.609,0,147.734,0c-12.891,0-23.328,10.438-23.328,23.328v85.859H97.219V25c0-9.313-7.547-16.844-16.844-16.844 S63.531,15.688,63.531,25v107.5h0.313c2.563,19.625,22.344,38.313,51.484,46.375v294.281c0,17.875,14.516,32.375,32.406,32.375 c17.875,0,32.359-14.5,32.359-32.375V178.094c25.313-7.219,48.906-22.516,51.547-45.594h0.266V25 C231.906,15.688,224.375,8.156,215.078,8.156z"></path> <path class="st0" d="M363.266,16.031c-18.797-6.375-47.188-10.188-47.188,18.656c0,0,0,419.594,0,443.375 c0,23.75,13.578,33.938,30.547,33.938s30.531-10.188,30.531-30.563c0-20.344,0-185.281,0-185.281s35.656,0,50.938,0 s20.375-18.688,20.375-32.281c0,0,0-50.969,0-93.406C448.469,78.281,403.031,29.563,363.266,16.031z"></path> </g> </g></svg>
+          <svg fill="currentColor" width="800px" height="800px" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path fill-rule="evenodd" d="M17,2 C17.5522847,2 18,2.44771525 18,3 C18,3.55228475 17.5522847,4 17,4 C14.6060126,4 13.3695615,4.90326036 13.0717604,6.92866732 C13.4229999,6.87683888 13.7457832,6.79126255 14.1108662,6.6654815 L14.3937153,6.56350644 L14.7196993,6.44090113 C15.5463139,6.13352796 16.1448777,6 17,6 C20.0545577,6 22,7.94663043 22,12 C22,17.2162914 20.1608115,22 17,22 C15.8880055,22 15.1044467,21.8599764 14.1748169,21.550663 L13.8588793,21.4412484 L13.565018,21.3349077 L13.1430741,21.189038 C12.8059545,21.0819563 12.5332036,21.025221 12.2323522,21.0068101 L12,21 C11.5991488,21 11.2783255,21.0551859 10.8569259,21.189038 L10.434982,21.3349077 L10.1411207,21.4412484 C9.06562275,21.8271314 8.23554948,22 7,22 C3.83918846,22 2,17.2162914 2,12 C2,7.94663043 3.9454423,6 7,6 C7.8551223,6 8.45368607,6.13352796 9.28030074,6.44090113 L9.60628474,6.56350644 C10.1418441,6.76405507 10.5646584,6.8860076 11.0553037,6.94825409 C11.4150382,3.73397931 13.4812343,2 17,2 Z M17,8 C16.4891945,8 16.1363674,8.06446503 15.6394344,8.23553224 L15.4167595,8.31549628 L15.0950848,8.43649356 C14.139796,8.79421651 13.3984816,8.9672419 12.3306767,8.99574467 L12,9 C10.7476416,9 9.9557329,8.8299888 8.90491521,8.43649356 L8.58324046,8.31549628 C7.96121631,8.08419923 7.5837777,8 7,8 C5.05028524,8 4,9.05092667 4,12 C4,16.1876638 5.46572574,20 7,20 C7.87053805,20 8.4503572,19.8993925 9.18294373,19.6565613 L9.97723383,19.3745877 C10.7085778,19.1190199 11.2769978,19 12,19 L12.3013195,19.007338 C12.7908307,19.0318833 13.2246152,19.1184306 13.7183823,19.2733676 L14.0227662,19.3745877 L14.8170563,19.6565613 C15.5496428,19.8993925 16.1294619,20 17,20 C18.5342743,20 20,16.1876638 20,12 C20,9.05092667 18.9497148,8 17,8 Z"/>
+          </svg>
           <span class="nav-text">Nutrition Generator</span>
         </div>
         <div class="nav-item" data-tab="progress">
@@ -312,15 +314,15 @@
       </section>
 
       <section id="coach" class="tab-content">
-        <div class="content" style="grid-template-columns: 1fr; max-width: 800px; margin: 4rem auto 0;">
-          <div class="card" style="text-align:center;">
+        <div class="content coach-content">   <!-- thêm class coach-content -->
+          <div class="card coach-card full-height-card">   <!-- thêm 2 class -->
             <h3 class="card-title">Get Your AI Evaluation</h3>
-            <p style="margin: 1rem 0; color: var(--text-light);">
+            <p style="margin: 1rem 0 2rem; color: var(--text-light); font-size: 1.05rem; line-height: 1.7;">
               Click the button to send your saved plan and check-ins to the AI Coach for a progress review.
             </p>
-            <button id="evaluate-btn" class="btn" style="max-width: 300px; margin: 1rem auto;">Evaluate Progress</button>
-            <h3 class="card-title" style="margin-top: 2rem;">Coach's Report</h3>
-            <div id="eval-response" class="plan-output">Evaluation will appear here...</div>
+            <button id="evaluate-btn" class="btn" style="min-width: 280px; padding: 1rem 2rem; font-size: 1.1rem;">Evaluate Progress</button>
+            
+            <div id="eval-response" class="coach-response"></div>   <!-- kết quả sẽ nằm đây -->
           </div>
         </div>
       </section>
