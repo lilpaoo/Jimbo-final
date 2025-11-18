@@ -8,3 +8,4 @@ tensorflow
 tensorflow-hub
 dtw-python
 pysqlite3-binary
+gunicorn
