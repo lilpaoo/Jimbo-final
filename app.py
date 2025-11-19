@@ -1,6 +1,6 @@
 import os
 import json
-import pysqlite3 as sqlite3
+import sqlite3
 import cv2
 import numpy as np
 import tensorflow as tf
@@ -9,7 +9,6 @@ import google.generativeai as genai
 import tempfile
 from dtw import dtw
 from dotenv import load_dotenv
-# --- NEW IMPORTS ---
 from flask import Flask, request, jsonify, send_from_directory, Response, stream_with_context
 from flask_cors import CORS
 
@@ -142,24 +141,19 @@ def process_video_to_metrics(model, video_path):
 
     all_frame_metrics = []
     frame_count = 0
-    processed_frame_count = 0  # <-- Ensuring this is initialized
+    processed_frame_count = 0 
 
     try:
         while True:
             ret, frame = cap.read()
             if not ret:
                 break
-
             frame_count += 1
-            
-            # --- OPTIMIZATION 1: FRAME SKIPPING ---
-            # This will only process 1 out of every 3 frames
             if frame_count % FRAME_SKIP_RATE != 0:
                 continue
                 
             processed_frame_count += 1
             
-            # Add this log to see progress. We'll log every 10 *processed* frames.
             if processed_frame_count % 10 == 0:
                 print(f"--- Processing frame {frame_count} (processed {processed_frame_count}) ---", flush=True)
 
@@ -184,10 +178,8 @@ def process_video_to_metrics(model, video_path):
 
             try:
                 torso_angle = calc_angle(p_s, p_h, p_k)
-                # --- FIX: Re-added missing line ---
                 angle_hip_ankle = calc_angle(p_s, p_h, p_a)
                 
-                # --- FIX: All calculations are now correctly indented inside the 'try' block ---
                 spine_curvature = abs(angle_hip_ankle - torso_angle)
                 armpit_angle = calc_angle(p_e, p_s, p_h)
 
@@ -212,12 +204,10 @@ def process_video_to_metrics(model, video_path):
                 all_frame_metrics.append(frame_metrics)
 
             except Exception as e:
-                # Also good to log if a specific frame fails
                 print(f"--- Error processing frame {frame_count}: {e} ---", flush=True)
                 all_frame_metrics.append(None)
     
     finally:
-        # --- FIX: This code now runs even if the loop breaks or errors ---
         cap.release()
         print(f"Analyzed {processed_frame_count} frames out of {frame_count} total. Extracted {len(all_frame_metrics)} valid sequences.")
 
@@ -468,7 +458,7 @@ def get_config():
         print(f"Error in /config: {e}")
         return jsonify({"error": "Server error."}), 500
 
-# === AI GENERATOR ENDPOINTS (from original app.py) ===
+# === AI GENERATOR ENDPOINTS ===
 
 WORKOUT_SYSTEM_PROMPT = """
 You are a world-class personal trainer and nutrition coach named Jimbo. Your goal is to create a detailed, balanced, and effective workout plan for the user based on their inputs.
@@ -654,8 +644,7 @@ def generate_nutrition_v2():
         return jsonify({"error": "Gemini API not configured"}), 500
         
     data = request.get_json()
-    # ... (add required field check)
-    
+
     user_prompt = f"""
     Goal: {data['goal']}
     Weight: {data['weight_kg']} kg
@@ -737,7 +726,7 @@ def chat_with_plan():
         print(f"Gemini Chat Error: {e}")
         return jsonify({"error": "Failed to get chat response from AI."}), 500
 
-# === NEW VIDEO ANALYSIS ENDPOINTS (from coach_app) ===
+# === VIDEO ANALYSIS ENDPOINTS ===
 
 @app.route('/exercises', methods=['GET'])
 def list_exercises():
@@ -755,15 +744,13 @@ def list_exercises():
         return jsonify({"error": "Failed to retrieve exercises from database."}), 500
 
 
-# --- NEW STREAMING ANALYSIS FUNCTION ---
+# --- STREAMING ANALYSIS FUNCTION ---
 def _analyze_video_stream(temp_video_path, exercise_name):
     """
     A generator function that yields progress updates
     for the video analysis process.
     """
-    try:
-        # 0. Save to temp file (This is now done *before* calling this function)
-        
+    try:    
         # 1. Process User Video
         yield json.dumps({
             "status": "processing_video", 
@@ -867,7 +854,7 @@ def analyze_video_form():
     if not exercise_name:
         return jsonify({"error": "Missing 'exercise_name' form field."}), 400
 
-    # --- FIX: Save the file *before* starting the generator ---
+    # --- Save the file *before* starting the generator ---
     temp_video_path = None
     try:
         with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as tfile:
@@ -876,7 +863,6 @@ def analyze_video_form():
     except Exception as e:
         print(f"Critical error saving temp file: {e}")
         return jsonify({"error": f"Failed to save uploaded file: {e}"}), 500
-    # --- End of Fix ---
 
     # Return the streaming response
     # We pass the *path* (string) to the generator, not the file object

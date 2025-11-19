@@ -1,22 +1,27 @@
 :root {
-  --bg-dark: #f6f9fc;              /* Nền trắng xanh rất sáng */
-  --sidebar-bg: #ffffff;            /* Sidebar trắng */
-  --card-bg: #ffffff;               /* Card sáng */
-  --card-hover: #eef5ff;            /* Hover xanh dương nhạt */
-  
-  /* Màu chủ đạo fitness */
-  --purple: #2dd4bf;                /* Mint / Aqua dễ chịu */
-  --purple-light: #5eead4;          /* Mint sáng hơn */
+--bg-dark: #1b1b1b;
+--sidebar-bg: #232323;
+--card-bg: #2a2a2a;
+--card-hover: #3a3a3a;
 
-  --text: #1f2937;                  /* Text đậm dễ đọc */
-  --text-light: #6b7280;            /* Text phụ */
-  --border: #d1d5db;                /* Viền xám nhạt */
 
-  --input-bg: #f0f9ff;              /* Input sáng */
-  --input-border: #38bdf8;          /* Border xanh năng lượng */
+/* Màu cam chủ đạo */
+--primary: #ff7a1a; /* cam chính */
+--primary-light: #ffa04d; /* cam nhạt */
+--primary-dark: #cc5e00; /* cam đậm */
 
-  --error: #ef4444;
-  --success: #22c55e;
+
+--text: #f5f5f5;
+--text-light: #c8c8c8;
+--border: #404040;
+
+
+--input-bg: #2e2e2e;
+--input-border: #ff9a3d;
+
+
+--error: #ef4444;
+--success: #22c55e;
 }
 
 
@@ -27,6 +32,7 @@
 }
 
 body {
+  color: var(--text);
   font-family: 'Inter', sans-serif;
   background: url('images/phone case.jpg') center center / cover no-repeat fixed !important;
   min-height: 100vh;
@@ -38,8 +44,8 @@ body {
 #auth-container {
   position: fixed;
   inset: 0;
-  background: linear-gradient(135deg, #ccfff6 0%, #8afce1 50%, #5eead4 100%);
-  color: #1f2937;
+  color: var(--text);
+  background: linear-gradient(135deg, #2b1a0f, #3a2312, #2a1c12);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -107,7 +113,7 @@ body {
   text-align: center;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #0f172a;
+  color: #ffffff;
 }
 
 .auth-or::before,
@@ -115,13 +121,10 @@ body {
   content: '';
   flex: 1;
   height: 1.5px;
-  background: linear-gradient(to right, transparent, rgba(15, 23, 42, 0.2));
+  background: linear-gradient(to left, transparent, rgba(255, 140, 0, 0.25));
   margin: 0 1rem;
 }
 
-.auth-or::after {
-  background: linear-gradient(to left, transparent, rgba(15, 23, 42, 0.2));
-}
 
 .auth-or span {
   background: rgba(255, 255, 255, 0.95);
@@ -154,8 +157,8 @@ body {
 
 /* NEW: Tester Login Button */
 .btn-secondary {
-    background: linear-gradient(135deg, #2dd4bf, #22c1c3);
-    color: white;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark)) !important;
+    color: black;
     border: none;
     padding: 14px 28px;
     border-radius: 50px;
@@ -167,7 +170,7 @@ body {
     font-size: 1rem;
 }
 .btn-secondary:hover {
-    background: linear-gradient(135deg, #5eead4, #2dd4bf);
+    background: linear-gradient(135deg, var(--primary-light), var(--primary)) !important;
     transform: translateY(-1px);
 }
 
@@ -175,7 +178,7 @@ body {
 /* Sidebar */
 .sidebar {
   width: 280px;
-  background: rgba(255, 255, 255, 255, 0.94) !important;
+  background: var(--sidebar-bg) !important;
   backdrop-filter: blur(12px);
   padding: 2rem 1.5rem;
   display: flex;
@@ -185,7 +188,7 @@ body {
   position: fixed;
   left: 0;
   top: 0;
-  border-right: 1px solid #d1d5db;
+  border-right: 1px solid var(--border);
   transform: translateX(0);
   transition: all 0.3s ease;
 }
@@ -205,6 +208,21 @@ body {
 .sidebar.collapsed .user-profile > div {
   display: none !important;
 }
+.sidebar .nav-item {
+background: #1f1f1f;
+border: 1.5px solid #3b3b3b;
+color: var(--text);
+}
+.sidebar .nav-item:hover {
+background: #3a2a1f;
+border-color: var(--primary);
+color: white;
+}
+.sidebar .nav-item.active {
+background: var(--primary);
+color: black;
+border-color: var(--primary-dark);
+}
 
 .sidebar .nav-item:first-child {
   margin-top: 10px;               /* cách nút hamburger ~80px (cùng với vị trí nút 3 gạch) */
@@ -220,7 +238,9 @@ body {
 
 /* Main section co lại tương ứng */
 .main {
+  background: #181818;
   transition: 0.3s;
+  color: var(--text);
 }
 
 .main.collapsed {
@@ -233,7 +253,7 @@ body {
   top: 28px;           /* cách logo một chút */
   left: 24px;          /* dính sát lề trái */
   z-index: 20;
-  background: rgba(255, 255, 255, 0.85);
+  background: var(--input-border);
   border: 1.5px solid rgba(15, 23, 42, 0.15);
   width: 44px;
   height: 44px;
@@ -339,9 +359,9 @@ body {
 }
 
 .header {
-  background: rgba(255, 255, 255, 255, 0.94) !important;
+  background: #202020 !important;
   backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(45, 212, 191, 0.15);
+  border-bottom: 1px solid var(--primary-light);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
   position: relative;
   z-index: 10;
@@ -357,12 +377,12 @@ body {
 
 header h1 {
   font-weight: 800 !important;
-  color: #0f172a !important;
+  color: #ffffff !important;
   margin-bottom: 0.5rem !important;
 }
 
 header p {
-  color: #475569 !important;
+  color: #8499b7 !important;
   font-weight: 500 !important;
   margin: 0;
 }
@@ -415,13 +435,13 @@ header p {
 }
 
 .card {
-  background: rgba(255, 255, 255, 0.94) !important;
-  
+  background: var(--card-bg) !important;
+  color: var(--text);
   color: #1f2937;
   border-radius: 24px;
   padding: 2rem;
   transition: transform 0.2s, box-shadow 0.2s;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.5);
   display: flex;
   flex-direction: column;
   gap: 1.2rem;
@@ -429,14 +449,14 @@ header p {
 
 .card:hover {
   transform: translateY(-6px);
-  box-shadow: 0 12px 25px rgba(0,0,0,0.3);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.6);
 }
 
 .card-title {
   font-size: 1.4rem;
   font-weight: 600;
   margin-bottom: 1.5rem;
-  color: white;
+  color: var(--primary-light);
 }
 
 .form-group {
@@ -455,11 +475,11 @@ header p {
 .form-select,
 .form-textarea {
   width: 100%;
-  background: #f0f9ff;
-  border: 1.5px solid #38bdf8;
+  background: var(--input-bg) !important;
+  border: 1.5px solid var(--input-border);
   border-radius: 14px;
   padding: 14px 16px;
-  color: #1f2937;
+  color: var(--text);
   font-size: 1rem;
   transition: all 0.2s;
 }
@@ -468,8 +488,8 @@ header p {
 .form-select:focus,
 .form-textarea:focus {
   outline: none;
-  border-color: var(--purple);
-  box-shadow: 0 0 0 3px rgba(157, 78, 221, 0.2);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(255,140,0,0.25);
 }
 
 .form-input::placeholder,
@@ -480,7 +500,7 @@ header p {
 
 .form-select {
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='white' height='24' viewBox='0 0 24 24' width='24'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg fill='white' xmlns='http://www.w3.org/2000/svg' height='24' viewBox='0 0 24 24' width='24'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 16px center;
 }
@@ -520,8 +540,8 @@ header p {
 
 
 .btn {
-  background: linear-gradient(135deg, #2dd4bf, #22c1c3);
-  color: white;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: black;
   border: none;
   padding: 14px 28px;
   border-radius: 50px;
@@ -534,25 +554,26 @@ header p {
 }
 
 .btn:hover {
-  background: linear-gradient(135deg, #5eead4, #2dd4bf);
+  background: linear-gradient(135deg, var(--primary-light), var(--primary));
+
   transform: translateY(-1px);
 }
 
 .btn:disabled {
   background: var(--purple);
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
   transform: none;
 }
 
 .plan-output {
-  background: #ffffff;
-  border: 2px solid #ccfbf1;
+  background: #1b1b1b !important;
+  border: 2px solid var(--primary-dark);
   border-radius: 20px;
   padding: 2.5rem 2.8rem;
   font-size: 1.02rem;
   line-height: 1.85;
-  color: #1f2937;
+  color: var(--text);
   box-shadow: 0 10px 30px rgba(45, 212, 191, 0.12);
   transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -575,18 +596,19 @@ header p {
   }
 }
 
-.plan-output h3, .plan-output h4 { color: #2dd4bf !important; font-weight: 700; margin: 2rem 0 1rem 0; font-size: 1.35rem; }
+.plan-output h3, .plan-output h4 { color: var(--primary-light) !important; font-weight: 700; margin: 2rem 0 1rem 0; font-size: 1.35rem; }
 .plan-output ul { margin: 1.2rem 0; padding-left: 1.8rem; list-style: none; }
 .plan-output li { margin-bottom: 0.75rem; padding-left: 0.5rem; position: relative; }
 .plan-output li::before {
   content: "▹";
-  color: #2dd4bf;
+  color: var(--primary);
   font-weight: bold;
   position: absolute;
   left: -1rem;
 }
-.plan-output p { margin: 0.8rem 0 }
-.plan-output strong { color: #14b8a6; }
+.plan-output p { color: #cfcfcf !important; margin: 0.8rem 0 }
+.plan-output strong { color: var(--primary-light) !important;
+}
 
 .plan-output > *:first-child {
   margin-top: 0;
@@ -602,6 +624,7 @@ header p {
 .checkin-list {
   list-style: none;
   padding: 0;
+  color: white;
 }
 
 .checkin-item {
@@ -689,7 +712,7 @@ header p {
 .chat-title {
   font-size: 1.1rem;
   font-weight: 600;
-  color: var(--purple-light);
+  color: white;
   margin-bottom: 1rem;
 }
 
@@ -697,8 +720,9 @@ header p {
   min-height: 150px;
   max-height: 300px;
   overflow-y: auto;
-  background: var(--input-bg);
-  border: 1px solid var(--input-border);
+  background: #1d1d1d;
+  border-color: var(--primary-light);
+
   border-radius: 14px;
   padding: 1rem;
   margin-bottom: 1rem;
@@ -736,12 +760,12 @@ header p {
 }
 .chat-input:focus {
   outline: none;
-  border-color: var(--purple);
+  border-color: var(--primary);
 }
 
 .chat-send-btn {
-  background: var(--purple);
-  color: white;
+  background: var(--primary);
+  color: black;
   border: none;
   padding: 0 1.5rem;
   border-radius: 14px;
@@ -751,15 +775,15 @@ header p {
   font-size: 0.9rem;
 }
 .chat-send-btn:hover {
-  background: var(--purple-light);
+  background: var(--primary-light);
 }
 
 /* ====================== NEW LANDING PAGE STYLE ====================== */
 #landing-page {
   position: fixed;
   inset: 0;
-  background: linear-gradient(135deg, rgba(45,212,191,0.15), rgba(94,234,212,0.25)), 
-              url('images/landing-bg.jpg') left center/cover no-repeat; 
+  background: linear-gradient(135deg, rgba(255,120,20,0.2), rgba(150,70,0,0.35)), 
+              url('images/landing-bg.jpg') left center/cover no-repeat;
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -790,7 +814,7 @@ header p {
 .landing-content h1 {
   font-size: 4.5rem;
   font-weight: 800;
-  color: white;
+  color: var(--primary-light);
   margin-bottom: 1rem;
   text-shadow: 0 4px 20px rgba(0,0,0,0.3);
 }
@@ -803,8 +827,8 @@ header p {
 }
 
 .start-button {
-  background: linear-gradient(135deg, #ccfff6, #8afce1 , #5eead4 );
-  color: rgb(0, 0, 0);
+  background: linear-gradient(135deg, var(--primary-light), var(--primary));
+  color: black;
   border: none;
   padding: 1rem 3.5rem;
   border-radius: 50px;
@@ -819,14 +843,16 @@ header p {
 .start-button:hover {
   transform: translateY(-4px);
   box-shadow: 0 15px 40px rgba(0,0,0,0.5);
-  background: linear-gradient(135deg, #5eead4 , #8afce1, #ccfff6);
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
 }
 
 /* Modal */
 .modal {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.6);
+  border: 1px solid var(--primary-dark);
+  color: var(--text);
+  background: rgba(34, 34, 34, 0.92) !important;
   backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
@@ -844,7 +870,9 @@ header p {
 
 .modal-content {
   position: relative;
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(34, 34, 34, 0.92) !important;
+  border: 1px solid var(--primary-dark);
+  color: var(--text);
   backdrop-filter: blur(20px);
   border-radius: 28px;
   padding: 3rem 2.5rem 2.5rem;
@@ -889,28 +917,21 @@ header p {
 }
 
 /* BỨT PHÁ MÀU TÍM CỦA AI – BẮT BUỘC ĐỂ CUỐI FILE */
-.plan-output p,
-.plan-output strong,
-.plan-output blockquote {
-  color: #0f766e !important;        /* Xanh teal đậm sang trọng */
-}
 
-.plan-output strong {
-  color: #2dd4bf !important;        /* Mint chủ đạo cho chữ in đậm */
-}
 
 /* Nếu có đoạn quote riêng thì làm nổi bật luôn */
 .plan-output p:last-child,
 .plan-output blockquote {
-  background: linear-gradient(135deg, rgba(45,212,191,0.12), rgba(94,234,212,0.18));
-  border-left: 5px solid #2dd4bf;
+  background: linear-gradient(135deg, rgba(255,120,20,0.08), rgba(255,160,80,0.06)) !important;
+  border-left: 5px solid var(--primary) !important;
+  color: var(--text) !important;
   padding: 1.6rem 2rem;
   border-radius: 0 16px 16px 0;
   margin: 2.5rem 0 0;
   text-align: center;
   font-size: 1.15rem;
   font-weight: 600;
-  box-shadow: 0 6px 20px rgba(45,212,191,0.18);
+  box-shadow: 0 6px 20px rgba(255,140,0,0.18) !important;
 }
 
 /* ========================= COACH EVALUATION – FULL + ĐẸP NGAY TỪ ĐẦU ========================= */
@@ -931,8 +952,8 @@ header p {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  background: #ffffff;
-  border: 2px solid #ccfbf1;
+  background: #222;
+  border: 2px solid var(--primary);
   border-radius: 28px;
   box-shadow: 0 20px 50px rgba(45, 212, 191, 0.18);
 }
@@ -941,12 +962,12 @@ header p {
 .coach-response {
   margin-top: 3.5rem;
   padding: 2.8rem 2.5rem;
-  background: linear-gradient(135deg, rgba(45,212,191,0.08), rgba(94,234,212,0.04));
+  background: #1c1c1c;
   border-radius: 20px;
-  border: 1px solid #99f6e4;
+  border-color: var(--primary);
   font-size: 1.08rem;
   line-height: 1.9;
-  color: #1f2937;
+  color: #ffffff;
   text-align: left;
   animation: fadeInUp 0.6s ease-out;
 }
@@ -954,7 +975,7 @@ header p {
 /* Tiêu đề trong báo cáo coach */
 .coach-response h3,
 .coach-response h4 {
-  color: #2dd4bf !important;
+  color: var(--primary-light) !important;
   font-weight: 800;
   margin: 2rem 0 1rem;
 }
@@ -964,15 +985,17 @@ header p {
   list-style: none;
   padding-left: 0.5rem;
   margin: 1.4rem 0;
+  color: white;
 }
 .coach-response li {
   position: relative;
   padding-left: 1.8rem;
   margin-bottom: 1rem;
+  color: white;
 }
 .coach-response li::before {
   content: "▸";
-  color: #2dd4bf;
+  color: var(--primary-light);
   font-weight: bold;
   position: absolute;
   left: 0;
@@ -980,7 +1003,7 @@ header p {
   font-size: 1.2em;
 }
 .coach-response strong {
-  color: #14b8a6;
+  color: var(--primary);
 }
 
 /* Hiệu ứng hiện kết quả mượt mà */
@@ -993,14 +1016,14 @@ header p {
 #api-response p:first-child,
 #nutrition-response p:first-child,
 #form-analysis-response p:first-child {
-  background: #ecfeff !important;
-  border-left: 4px solid #2dd4bf !important;
+  background: linear-gradient(135deg, rgba(255,120,20,0.08), rgba(255,160,80,0.06)) !important;
+  border-left: 5px solid var(--primary) !important;
   padding: 1.2rem 1.8rem !important;
   border-radius: 0 16px 16px 0 !important;
   margin: 0 0 2rem 0 !important;
   font-size: 1rem !important;
   font-weight: 500 !important;
-  color: #0f766e !important;
+  color: var(--text) !important;
   text-align: left !important;
   box-shadow: none !important;
 }
@@ -1011,5 +1034,26 @@ header p {
 }
 
 
+#save-status,
+#save-nutrition-status,
+#upload-status {
+  color: white !important;
+  font-weight: 600;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+/* Nếu muốn cả icon tick xanh lá cũng chuyển thành trắng luôn (đẹp hơn trên nền tối) */
+#save-status::before,
+#save-nutrition-status::before,
+#upload-status::before {
+  color: white !important;
+}
+
+/* Đặc biệt với thông báo thành công (có tick) */
+.status.text-green-500,
+.status:contains("File downloaded"),
+.status:contains("saved") {
+  color: white !important;
+}
 
 

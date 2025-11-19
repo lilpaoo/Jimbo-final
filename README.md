@@ -1,51 +1,47 @@
 # Jimbo - AI Personal Trainer
 
-Jimbo is a comprehensive, AI-powered personal trainer web application. It combines the power of Google's Gemini AI for generating personalized workout/nutrition plans and the TensorFlow MoveNet model for real-time video form analysis.
+Jimbo is a comprehensive, AI-powered personal trainer web application that combines Google's Gemini AI for personalized workout and nutrition plans with TensorFlow's MoveNet model for real-time video form analysis.
 
 ## Features
 
-- **AI Workout Generator**: Creates customized weekly workout plans based on user goals, experience, and available equipment.
-- **AI Nutrition Generator**: Provides high-level nutrition plans with calorie/macro targets and meal examples.
-- **AI Form Analysis**: Users can upload a video of an exercise and receive a detailed score (Spine, Stability, Joint, Control) and corrective feedback from an AI coach. Uses TensorFlow MoveNet (Thunder) for high-accuracy pose estimation and Dynamic Time Warping (DTW) to compare user form against a "golden standard" from a database.
-- **AI Coach Evaluation**: Analyzes a user's saved plan and check-in logs to provide motivational feedback and recommendations.
+- **AI Workout Generator**: Creates customized weekly workout plans based on user goals, experience level, available equipment, and time constraints.
+- **AI Nutrition Generator**: Provides high-level nutrition plans with calorie/macro targets and meal examples tailored to user preferences.
+- **AI Form Analysis**: Upload a video of an exercise to receive a detailed score (Spine, Stability, Joint, Control) and corrective feedback from an AI coach using TensorFlow MoveNet and Dynamic Time Warping (DTW).
+- **AI Coach Evaluation**: Analyzes saved plans and progress logs to offer motivational feedback and recommendations.
 - **Dual Login & Save System**:
-  - **Google Account Mode**: Securely logs in with a Google account and uses the Google Drive & Sheets API to save/load workout plans and progress logs.
-  - **Tester Mode**: Allows for full app functionality without a Google account by saving/loading plan data and check-ins to a local .xlsx (Excel) file.
-- **Progress Logger**: Log check-ins with date, weight, and notes.
-- **Responsive Web Interface**: Built with HTML5, CSS3, and JavaScript for a modern, user-friendly experience.
+  - **Google Account Mode**: Secure login via Google OAuth, saving plans and logs to Google Drive & Sheets.
+  - **Tester Mode**: Full functionality without a Google account, saving data locally as Excel files.
+- **Progress Logger**: Log check-ins with date, weight, and notes; view recent progress.
+- **Responsive Web Interface**: Modern, user-friendly design built with HTML5, CSS3, and JavaScript.
 
 ## Tech Stack
 
 ### Backend
 - **Python**: Core language.
 - **Flask**: Web server and API framework.
-- **Google Gemini API**: For all text/JSON-based AI generation (workout plans, nutrition, evaluations, form feedback).
-- **TensorFlow & TensorFlow-Hub**: For running the MoveNet model.
-- **OpenCV**: For video processing.
-- **DTW-Python**: For time-series form comparison.
-- **SQLite**: For storing "golden standard" exercise data in `correct_movement.db`.
-- **python-dotenv**: For environment variable management.
-- **Flask-CORS**: For handling cross-origin requests.
+- **Google Gemini API**: Handles all AI text/JSON generation (plans, nutrition, evaluations, form feedback).
+- **TensorFlow & TensorFlow-Hub**: Runs the MoveNet model for pose estimation.
+- **OpenCV**: Video processing.
+- **DTW-Python**: Time-series form comparison.
+- **SQLite**: Stores golden standard exercise data in `correct_movement.db`.
+- **python-dotenv**: Environment variable management.
+- **Flask-CORS**: Cross-origin request handling.
 
 ### Frontend
 - **HTML5**: Structure.
-- **CSS3**: Custom-styled, responsive layout.
+- **CSS3**: Responsive styling.
 - **JavaScript (ES6+)**: Client-side logic.
-- **Google Identity Services**: For OAuth 2.0 login.
-- **SheetJS**: For client-side Excel file creation/parsing in Tester Mode.
+- **Google Identity Services**: OAuth 2.0 login.
+- **SheetJS**: Client-side Excel file parsing/creation in Tester Mode.
 
 ## Prerequisites
 
-- Python 3.7 or higher
-- A Google Gemini API key (obtain from [Google AI Studio](https://makersuite.google.com/app/apikey))
-- A Google OAuth Client ID (obtain from [Google Cloud Console](https://console.cloud.google.com/))
-- The `correct_movement.db` SQLite database file (contains golden standard exercise data; not included in the repository)
+- Python 3.7 or higher.
+- Google Gemini API key (from [Google AI Studio](https://makersuite.google.com/app/apikey)).
+- Google OAuth Client ID (from [Google Cloud Console](https://console.cloud.google.com/)).
+- SQLite database file `correct_movement.db` (contains golden standard exercise data; not included in the repository).
 
 ## Setup & Installation
-
-Follow these steps to get the application running locally.
-
-### 1. Backend Setup
 
 1. **Clone the Repository**:
    ```
@@ -60,126 +56,216 @@ Follow these steps to get the application running locally.
    ```
 
 3. **Install Dependencies**:
-   Install all required Python packages using the provided `requirements.txt` file.
+   Install required packages from `requirements.txt`:
    ```
    pip install -r requirements.txt
    ```
 
-4. **Create .env File**:
-   Create a file named `.env` in the root of the project and add your API keys. You must get your `GOOGLE_CLIENT_ID` from the Google Cloud Console (for OAuth) and a `GOOGLE_API_KEY` from Google AI Studio (for Gemini).
+4. **Configure Environment Variables**:
+   Create a `.env` file in the root directory with your API keys:
    ```
    GOOGLE_API_KEY="your_gemini_api_key_here"
    GOOGLE_CLIENT_ID="your_google_oauth_client_id_here.apps.googleusercontent.com"
    ```
-   Note: In `app.py`, the code will also check for `GEMINI_API_KEY` as a fallback for the Gemini API.
+   Note: `GEMINI_API_KEY` is also accepted as a fallback for the Gemini API.
 
 5. **Set Up the Database**:
-   The form analysis feature requires a SQLite database named `correct_movement.db` containing the "golden standard" exercise data. This file is not included in the repository. You must have this database file in the same directory as `app.py` for the `/exercises` and `/analyze-form` endpoints to work.
+   Ensure `correct_movement.db` is in the same directory as `app.py`. This file is required for form analysis endpoints (`/exercises` and `/analyze-form`).
 
-### 2. Frontend Setup
-
-1. **Configure Google Client ID**:
-   Go to the Google Cloud Console. Find your OAuth 2.0 Client ID (the same one you put in `.env`).
-   - Under **Authorized JavaScript origins**, add `http://127.0.0.1:5000`.
-   - Under **Authorized redirect URIs**, add `http://127.0.0.1:5000`.
-
-2. **No Other Setup Needed!**
-   All frontend dependencies (SheetJS) are loaded via a CDN in `index.html`.
+6. **Configure Google OAuth**:
+   In the Google Cloud Console, under your OAuth 2.0 Client ID:
+   - Add `http://127.0.0.1:5000` to **Authorized JavaScript origins**.
+   - Add `http://127.0.0.1:5000` to **Authorized redirect URIs**.
 
 ## Running the Application
 
 1. **Start the Backend Server**:
-   Run the `app.py` file from your terminal (make sure your virtual environment is activated).
+   With the virtual environment activated, run:
    ```
    python app.py
    ```
-   You should see output indicating the Flask server is running on `http://127.0.0.1:5000/`.
+   The server will start on `http://127.0.0.1:5000/`.
 
-2. **Open the Frontend**:
-   Open your web browser and navigate to:
-   ```
-   http://127.0.0.1:5000/
-   ```
-   The `app.py` server is configured to serve the `index.html` file automatically from the root URL.
+2. **Access the Frontend**:
+   Open a web browser and navigate to `http://127.0.0.1:5000/`. The server serves `index.html` automatically.
 
-## Usage
+## Frontend Usage
 
-### Frontend Interface
+- **Login**: Choose Google Account login for cloud saving or Tester Mode for local Excel saving.
+- **Workout Generator**: Input goal, experience, days/week, hours/day, equipment, and optional notes to generate a plan. Save to Google Drive or download as Excel.
+- **Nutrition Generator**: Provide personal details (goal, weight, height, age, activity level, preferences) to generate a nutrition plan.
+- **Progress Logger**: Log check-ins with date, weight, and notes. View recent entries.
+- **Form Analysis**: Select an exercise, upload a video, and receive AI-scored feedback.
+- **Coach Evaluation**: Get AI evaluation based on your saved plan and check-in logs.
 
-- **Login**: Choose between Google Account login or Tester Mode.
-- **Workout Generator**: Fill in details (goal, experience, days/week, hours/day, equipment) and generate a plan. Save to Google Drive or download as Excel.
-- **Nutrition Generator**: Input personal details and generate a nutrition plan.
-- **Progress Logger**: Log check-ins with date, weight, and notes. View recent check-ins.
-- **Form Analysis**: Select an exercise, upload a video, and get AI feedback on your form.
-- **Coach Evaluation**: Get AI evaluation based on your plan and check-ins.
+## API Usage
 
-### API Endpoints
+The backend provides RESTful endpoints for direct API interaction. All requests/responses are in JSON format. The server runs on `http://127.0.0.1:5000` by default.
 
-The backend provides several RESTful endpoints. The frontend interacts with these, but you can also call them directly.
-
-#### 1. Generate Workout Plan
+### 1. Generate Workout Plan
 - **Endpoint**: `POST /generate-workout`
 - **Description**: Generates a personalized workout plan.
-- **Payload**:
+- **Request**:
+  ```bash
+  curl -X POST http://127.0.0.1:5000/generate-workout \
+    -H "Content-Type: application/json" \
+    -d '{
+      "goal": "Muscle Gain",
+      "experience_level": "Intermediate",
+      "days_per_week": 4,
+      "hours_per_day": 1,
+      "available_equipment": "Full gym",
+      "notes": "Optional notes"
+    }'
+  ```
+- **Response** (Success):
   ```json
   {
-    "goal": "Muscle Gain",
-    "experience_level": "Intermediate",
-    "days_per_week": 4,
-    "hours_per_day": 1,
-    "available_equipment": "Full gym",
-    "notes": "Optional notes"
+    "title": "Your Muscle Gain Workout Plan",
+    "frequency": "4 Training Days",
+    "days": [
+      {
+        "day": "Day 1",
+        "focus": "Push Day (Chest, Shoulders, Triceps)",
+        "warm_up": "5-10 min light cardio",
+        "exercises": [
+          {"name": "Bench Press", "sets_reps": "4 sets x 8-10 reps"},
+          {"name": "Overhead Press", "sets_reps": "3 sets x 8-10 reps"}
+        ],
+        "cool_down": "Static stretches"
+      }
+    ],
+    "motivational_tip": "Consistency is key!"
   }
   ```
-- **Response**: JSON object with plan details.
 
-#### 2. Generate Nutrition Plan
+### 2. Generate Nutrition Plan
 - **Endpoint**: `POST /generate-nutrition-plan`
 - **Description**: Generates a personalized nutrition plan.
-- **Payload**:
+- **Request**:
+  ```bash
+  curl -X POST http://127.0.0.1:5000/generate-nutrition-plan \
+    -H "Content-Type: application/json" \
+    -d '{
+      "goal": "Fat Loss",
+      "weight_kg": 75,
+      "height_cm": 175,
+      "age": 30,
+      "activity_level": "Moderately Active",
+      "preferences": "Vegetarian"
+    }'
+  ```
+- **Response** (Success):
   ```json
   {
-    "goal": "Fat Loss",
-    "weight_kg": 75,
-    "height_cm": 175,
-    "age": 30,
-    "activity_level": "Moderately Active",
-    "preferences": "Vegetarian"
+    "title": "Your Fat Loss Nutrition Plan",
+    "targets": {
+      "calories": "2200",
+      "protein": "150g",
+      "carbs": "200g",
+      "fats": "70g"
+    },
+    "sample_plan": [
+      {"meal": "Breakfast", "description": "Oatmeal with fruits and nuts"},
+      {"meal": "Lunch", "description": "Quinoa salad with veggies"},
+      {"meal": "Dinner", "description": "Grilled tofu with vegetables"},
+      {"meal": "Snack", "description": "Greek yogurt with berries"}
+    ],
+    "key_tips": [
+      "Prioritize protein at each meal",
+      "Drink 2-3L of water daily",
+      "Limit processed foods"
+    ]
   }
   ```
-- **Response**: JSON object with targets, sample plan, and tips.
 
-#### 3. Evaluate Plan
+### 3. Evaluate Plan
 - **Endpoint**: `POST /evaluate-plan`
 - **Description**: Provides AI evaluation based on plan and check-ins.
-- **Payload**:
+- **Request**:
+  ```bash
+  curl -X POST http://127.0.0.1:5000/evaluate-plan \
+    -H "Content-Type: application/json" \
+    -d '{
+      "original_plan": {"title": "Workout Plan", ...},
+      "check_ins": [
+        {"date": "2023-10-01", "weight_kg": 75, "notes": "Good session"},
+        {"date": "2023-10-02", "weight_kg": 74.5, "notes": "Felt strong"}
+      ]
+    }'
+  ```
+- **Response** (Success):
   ```json
   {
-    "original_plan": { ... },
-    "check_ins": [ ... ]
+    "title": "Your Progress Evaluation",
+    "analysis": "You've been consistent with your workouts and are seeing progress in weight loss.",
+    "key_observations": [
+      "Great job logging sessions regularly!",
+      "Weight is trending down, aligning with your fat loss goal."
+    ],
+    "recommendations": [
+      "Keep up the consistency.",
+      "Increase weight on main lifts if strength stalls."
+    ]
   }
   ```
-- **Response**: JSON object with analysis, observations, and recommendations.
 
-#### 4. List Exercises
+### 4. Chat with Plan
+- **Endpoint**: `POST /chat-with-plan`
+- **Description**: Chat about your plan with the AI coach.
+- **Request**:
+  ```bash
+  curl -X POST http://127.0.0.1:5000/chat-with-plan \
+    -H "Content-Type: application/json" \
+    -d '{
+      "context_plan": {"title": "Workout Plan", ...},
+      "message": "How can I modify this for knee issues?",
+      "history": []
+    }'
+  ```
+- **Response** (Success):
+  ```json
+  {
+    "response": "For knee issues, focus on low-impact exercises like leg presses..."
+  }
+  ```
+
+### 5. List Exercises
 - **Endpoint**: `GET /exercises`
-- **Description**: Retrieves list of available exercises for form analysis.
-- **Response**: JSON array of exercise names.
+- **Description**: Retrieves available exercises for form analysis.
+- **Request**:
+  ```bash
+  curl http://127.0.0.1:5000/exercises
+  ```
+- **Response** (Success):
+  ```json
+  ["Squat", "Bench Press", "Deadlift"]
+  ```
 
-#### 5. Analyze Form
+### 6. Analyze Form
 - **Endpoint**: `POST /analyze-form`
-- **Description**: Analyzes uploaded video for form feedback.
-- **Payload**: FormData with `exercise_name` and `video` file.
-- **Response**: Streaming JSON updates, final response with scores and analysis.
+- **Description**: Analyzes uploaded video for form feedback (streaming response).
+- **Request** (using curl with file upload):
+  ```bash
+  curl -X POST http://127.0.0.1:5000/analyze-form \
+    -F "exercise_name=Squat" \
+    -F "video=@path/to/video.mp4"
+  ```
+- **Response**: Streaming JSON updates, final response includes scores and analysis.
 
-#### 6. Config
+### 7. Config
 - **Endpoint**: `GET /config`
 - **Description**: Returns Google Client ID for frontend.
-- **Response**: JSON with `google_client_id`.
-
-#### 7. Static Files
-- **Endpoint**: `GET /<path>`
-- **Description**: Serves static files (e.g., `index.html`, images).
+- **Request**:
+  ```bash
+  curl http://127.0.0.1:5000/config
+  ```
+- **Response** (Success):
+  ```json
+  {
+    "google_client_id": "your_client_id.apps.googleusercontent.com"
+  }
+  ```
 
 ## Dependencies
 
@@ -194,34 +280,30 @@ See `requirements.txt` for the full list. Key packages include:
 - tensorflow-hub
 - dtw-python
 
-## Contributing
-
-Feel free to submit issues, feature requests, or pull requests to improve this project.
-
 ## 🐳 Run with Docker
 
-You can run this application using Docker without installing Python or any libraries. This image already includes the correct_movement.db database file.
+You can run this application using Docker without installing Python or any external libraries. This image comes pre-packaged with the `correct_movement.db` database file.
 
-*Requirements:*
-* You must have Docker installed (Docker Desktop).
+### Requirements
 
-* You must have your own 2 API keys: GOOGLE_API_KEY and GOOGLE_CLIENT_ID (see [Prerequisites](#prerequisites)).
+* **Docker:** You must have Docker installed (e.g., Docker Desktop).
+* **API Keys:** You need your own `GOOGLE_API_KEY` and `GOOGLE_CLIENT_ID` (please refer to the [Prerequisites](#prerequisites) section).
 
 ---
 
-### How to run a Container
+### How to Run the Container
 
-Open your terminal (PowerShell, CMD, etc.) and run the following command.
+Open your terminal (PowerShell, CMD, Terminal, etc.) and execute the following command.
 
-*Replace* YOUR_API_KEY_HERE and YOUR_CLIENT_ID_HERE with your API key:
+> **Note:** Be sure to replace `YOUR_API_KEY_HERE` and `YOUR_CLIENT_ID_HERE` with your actual values.
 
-```sh
-docker run -d -p 5000:5000 \ 
--e GOOGLE_API_KEY="YOUR_API_KEY_HERE" \ 
--e GOOGLE_CLIENT_ID="YOUR_CLIENT_ID_HERE" \ 
---name jimbo_app \ 
-trungdt226/jimbo-final-web:latest
+```bash
+docker run -d -p 5000:5000  -e GOOGLE_API_KEY="YOUR_API_KEY_HERE"  -e GOOGLE_CLIENT_ID="YOUR_CLIENT_ID_HERE"  --name jimbo_app  trungdt226/jimbo-final-web:latest
+
+## Contributing
+
+Contributions are welcome! Submit issues, feature requests, or pull requests to improve Jimbo.
 
 ## License
 
-This project is open-source and available under the MIT License.
+This project is open-source under the MIT License.

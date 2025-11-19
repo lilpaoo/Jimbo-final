@@ -288,7 +288,7 @@ function showAppUI(email) {
         loadUserDataFromDrive();
         
     } else if (loginMode === 'tester') {
-        pageSubtitle.textContent = "You are in Tester Mode. Data is saved locally.";
+        pageSubtitle.textContent = "You are in Guest Mode. Data is saved locally.";
         saveBtn.textContent = "Download Data File (.xlsx)";
         testerUploadSection.classList.remove('hidden');
         // No Google API calls, just clear the UI
